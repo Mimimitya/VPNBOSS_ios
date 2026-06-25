@@ -1,0 +1,1339 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>BOSS VPN</title>
+<meta name="description" content="BOSS VPN. Подключи VPN от 30 рублей в месяц. Тарифы для Европы и России, подписка для телефона и ПК, удобное управление в Telegram.">
+<meta property="og:title" content="BOSS VPN">
+<meta property="og:description" content="Подключи BOSS VPN от 30 рублей в месяц. Европа и Россия, удобное управление в Telegram.">
+<meta property="og:image" content="/assets/telegram-avatar.jpg">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="BOSS VPN">
+<meta name="twitter:description" content="Подключи BOSS VPN от 30 рублей в месяц. Европа и Россия, удобное управление в Telegram.">
+<meta name="twitter:image" content="/assets/telegram-avatar.jpg">
+<link rel="icon" type="image/jpeg" href="/assets/telegram-avatar.jpg">
+<link rel="apple-touch-icon" href="/assets/telegram-avatar.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800;900&display=swap" rel="stylesheet">
+<style>
+
+:root{
+  --ink:#050505;
+  --paper:#ffffff;
+  --soft:#f2f2f2;
+  --muted:#d9d9d9;
+  --line:rgba(0,0,0,.12);
+  --font:'Montserrat',Arial,sans-serif;
+  --ease:cubic-bezier(.76,0,.24,1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{background:#fff;scroll-behavior:smooth}
+body{min-height:100vh;background:#fff;color:#000;font-family:var(--font);font-weight:800;overflow-x:hidden}body.hero-lock{overflow:hidden;touch-action:none}
+button,input,textarea{font:inherit}
+button{touch-action:manipulation}
+a,button{color:inherit}
+a{text-decoration:none}
+img{max-width:100%}
+#matrix,body::after{display:none!important}
+#app{min-height:100vh;background:#fff;color:#000}
+.text-g,.text-c,.text-r,.text-muted,.stat-val.warn,.stat-val.bad{color:rgba(0,0,0,.58)!important}
+
+nav{position:sticky;top:0;z-index:100;height:86px;display:grid;grid-template-columns:minmax(210px,280px) 1fr;grid-template-rows:100%;align-items:center;gap:clamp(18px,5vw,110px);padding:0 clamp(26px,4.5vw,70px);background:#000;color:#fff}
+.logo{display:flex;align-items:center;width:fit-content;min-width:0;height:100%;align-self:center}
+.logo img{display:block;width:clamp(170px,15vw,245px);max-height:52px;height:auto;object-fit:contain}
+.nav-right{display:grid;grid-template-columns:1fr 1fr auto;align-items:center;gap:clamp(28px,7vw,150px);min-width:0}
+.nav-btn{border:0;background:transparent;color:#fff;font:900 clamp(12px,1vw,15px)/1 var(--font);padding:0;cursor:pointer;white-space:nowrap;transition:opacity .2s ease,transform .2s ease;text-align:center}
+.nav-btn:hover{opacity:.72;transform:translateY(-1px)}
+.nav-btn:active{transform:translateY(0)}
+.nav-btn.accent,#btnLogout{justify-self:end;text-align:right}
+.nav-btn.cabinet-btn,nav .nav-btn:first-child{justify-self:center}.menu-toggle{display:none}
+.nav-btn:focus-visible,.btn:focus-visible,.auth-tab:focus-visible,.cab-tab-btn:focus-visible,.dot:focus-visible{outline:3px solid currentColor;outline-offset:4px}
+
+.section{min-height:calc(100svh - 86px);display:none;flex-direction:column;align-items:center;justify-content:flex-start;padding:clamp(44px,7vh,78px) clamp(20px,6vw,120px);background:#fff;color:#000}
+.section.active{display:flex}
+#hero{height:calc(100svh - 86px);min-height:0;align-items:stretch;padding:clamp(70px,10vh,120px) clamp(42px,7vw,150px) 48px;overflow:hidden;background:#fff;color:#000;transition:background-color .72s var(--ease),color .72s var(--ease)}
+.hero-inner{width:100%;max-width:1180px;text-align:left;position:relative}
+.hero-tag,.price-badge,.glitch::before,.glitch::after{display:none!important}
+.hero-title{display:flex;flex-direction:column;gap:clamp(18px,3vh,40px);margin:0 0 clamp(18px,3vh,34px);font:900 clamp(72px,8.6vw,142px)/.88 var(--font);letter-spacing:0;text-transform:uppercase;color:inherit;text-shadow:none;text-wrap:balance;max-width:1040px}
+.hero-title span{color:inherit;text-shadow:none;overflow-wrap:normal}
+.value-stage{height:clamp(80px,12vh,112px);margin-top:clamp(8px,2vh,22px)}
+.value-pill{display:inline-flex;align-items:center;justify-content:center;max-width:100%;min-width:min(var(--pill-width,430px),calc(100vw - 52px));height:clamp(64px,8.5vh,84px);padding:0 clamp(20px,2.4vw,32px);border-radius:24px;background:#d9d9d9;color:#000;transform:rotate(var(--pill-rotation,0deg));transform-origin:center;transition:transform .72s var(--ease),min-width .72s var(--ease),background .72s var(--ease)}
+.value-pill span{font:900 var(--pill-font,clamp(40px,4.2vw,64px))/.92 var(--font);white-space:nowrap;text-transform:uppercase;transition:opacity .22s ease}
+.hero-sub{max-width:620px;margin:clamp(24px,4vh,44px) 0 0;font:800 clamp(19px,1.65vw,29px)/1.18 var(--font);color:inherit;text-wrap:pretty;transition:color .72s var(--ease),opacity .22s ease}
+.cta-row{display:flex;gap:12px;justify-content:flex-start;align-items:center;flex-wrap:wrap;margin-top:clamp(26px,5vh,54px)}
+#hero .cta-row .btn-secondary{display:none}#hero[data-hero-theme='dark']{background:#050505;color:#fff}#hero[data-hero-theme='dark'] .value-pill{background:#fff;color:#000}#hero[data-hero-theme='dark'] .btn-primary{background:#fff;color:#000}#hero[data-hero-theme='light']{background:#fff;color:#000}#hero[data-hero-theme='light'] .value-pill{background:#d9d9d9;color:#000}#hero[data-hero-theme='light'] .btn-primary{background:#000;color:#fff}
+.hero-progress{position:absolute;right:clamp(14px,2.2vw,30px);top:50%;transform:translateY(-50%);display:grid;gap:11px}
+.hero-progress .dot{width:8px;height:32px;border:0;border-radius:999px;background:currentColor;opacity:.25;cursor:pointer;transition:opacity .24s ease,transform .24s ease,background-color .72s var(--ease)}
+.hero-progress .dot.active{opacity:1;transform:scaleY(1.22)}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;min-height:50px;padding:.85rem 1.35rem;border:0;border-radius:18px;background:#000;color:#fff;font:900 clamp(13px,1vw,16px)/1 var(--font);cursor:pointer;text-transform:uppercase;text-align:center;transition:transform .2s ease,opacity .2s ease,background .2s ease,color .2s ease,border-color .2s ease;max-width:100%}
+.btn::before{display:none!important}
+.btn:hover{transform:translateY(-1px);opacity:.84;box-shadow:none}
+.btn:active{transform:translateY(1px) scale(.99)}
+.btn-primary{background:#000;color:#fff;box-shadow:none}
+.btn-secondary{background:transparent;color:#000;border:2px solid #000}
+.btn-secondary:hover{background:#000;color:#fff;opacity:1}
+.btn-danger{background:#000;color:#fff}
+.btn-sm{min-height:38px;padding:.55rem .82rem;font-size:12px;border-radius:12px}
+.btn-full{width:100%}
+
+.section-head{width:100%;max-width:1180px;text-align:left;margin-bottom:clamp(22px,4vh,44px)}
+.section-head h2{font:900 clamp(34px,5.4vw,78px)/.96 var(--font);color:#000;text-transform:uppercase;margin-bottom:12px;text-wrap:balance}
+.section-head p{font:800 clamp(14px,1.35vw,19px)/1.24 var(--font);color:rgba(0,0,0,.62);max-width:620px}
+#plans{align-items:center}
+.plans-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;width:100%;max-width:1120px}
+.plan-card{position:relative;background:#f2f2f2;border:0;border-radius:8px;padding:22px;min-height:245px;display:flex;flex-direction:column;color:#000;cursor:pointer;transition:transform .22s ease,background .22s ease,color .22s ease}
+.plan-card::before{display:none!important}
+.plan-card:hover,.plan-card.selected{transform:translateY(-3px);background:#000;color:#fff;box-shadow:none}
+.plan-card.popular{background:#e1e1e1;border:0}
+.plan-card.popular::after{content:'ВЫБОР';position:absolute;top:14px;right:14px;font:900 10px/1 var(--font);color:#fff;background:#000;border-radius:999px;padding:5px 8px}
+.plan-card:hover .plan-desc,.plan-card:hover .plan-feature,.plan-card.selected .plan-desc,.plan-card.selected .plan-feature{color:rgba(255,255,255,.74)}
+.plan-name{font:900 17px/1.05 var(--font);color:inherit;margin-bottom:10px;text-transform:uppercase;max-width:calc(100% - 58px)}
+.plan-price{font:900 clamp(32px,3.6vw,48px)/.95 var(--font);color:inherit}
+.plan-price span{display:block;margin-top:5px;font-size:12px;color:inherit;opacity:.55}
+.plan-desc{margin-top:13px;font:800 14px/1.28 var(--font);color:rgba(0,0,0,.56)}
+.plan-feature{display:flex;gap:8px;margin-top:8px;font:800 13px/1.24 var(--font);color:rgba(0,0,0,.62)}
+.plan-feature .on{color:inherit}
+.plan-select-btn{margin-top:auto;width:100%;padding:.75rem;border:2px solid currentColor;border-radius:14px;background:transparent;color:inherit;font:900 12px/1 var(--font);cursor:pointer}
+.plan-card:hover .plan-select-btn,.plan-card.selected .plan-select-btn{background:#fff;color:#000;border-color:#fff}
+
+.auth-box,.setup-box,.success-box,.cab-sidebar,.cab-panel{background:#f3f3f3;border:0;border-radius:8px;color:#000;box-shadow:none}
+.auth-box,.setup-box,.success-box{width:100%;max-width:620px;padding:clamp(20px,4vw,38px)}
+.auth-box::before,.auth-box::after{display:none!important}
+.auth-tabs{display:flex;margin-bottom:20px;border-bottom:2px solid rgba(0,0,0,.1);gap:8px}
+.auth-tab{flex:1;padding:.8rem;background:transparent;border:0;border-bottom:3px solid transparent;color:rgba(0,0,0,.45);font:900 13px/1 var(--font);cursor:pointer;text-align:center}
+.auth-tab.active{color:#000;border-bottom-color:#000}
+.auth-tab-pane{display:none}.auth-tab-pane.active{display:block}
+.auth-intro,.tg-auth-box,.connect-card{background:#fff;border:0;border-radius:8px;padding:16px;margin-bottom:16px;color:#000}
+.auth-intro strong{font:900 15px/1.1 var(--font);color:#000}
+.auth-intro p,.auth-hint,.tg-auth-box p,.connect-card p{font:800 14px/1.35 var(--font)!important;color:rgba(0,0,0,.62)!important;margin-top:7px!important;letter-spacing:0!important}
+.tg-auth-box b{color:#000!important}.tg-auth-box{overflow:hidden}.tg-auth-box .btn-secondary{border:2px solid #000;border-radius:14px;background:#fff;color:#000;box-shadow:none;outline:none}.tg-auth-box .btn-secondary:focus{outline:none}.tg-auth-box .btn-secondary:focus-visible{outline:3px solid #000;outline-offset:3px}.tg-auth-area{display:none;margin-top:14px;padding-top:14px;border-top:2px solid rgba(0,0,0,.08)}.tg-auth-label{margin:0 0 8px!important;color:rgba(0,0,0,.56)!important}.tg-auth-status{display:flex;align-items:center;justify-content:center;gap:8px;margin:12px 0 0!important;text-align:center}.tg-link{display:block;width:100%;max-height:88px;overflow:auto;font-size:12px;line-height:1.25;white-space:normal;overflow-wrap:anywhere;word-break:break-word;background:#f3f3f3!important;margin:8px 0 0!important}
+.field{margin-bottom:14px}.field label{display:block;margin-bottom:7px;font:900 11px/1.2 var(--font);color:rgba(0,0,0,.56);text-transform:uppercase}
+.field input,.add-dev-row input,.new-ticket-row textarea,#devNameInput{width:100%;background:#fff!important;border:2px solid rgba(0,0,0,.12)!important;border-radius:12px!important;color:#000!important;font:800 15px/1.2 var(--font)!important;padding:.82rem .95rem!important;outline:none!important;min-width:0}
+.field input:focus,.add-dev-row input:focus,.new-ticket-row textarea:focus,#devNameInput:focus{border-color:#000!important}
+.field input::placeholder,.new-ticket-row textarea::placeholder{color:rgba(0,0,0,.32)}
+.divider{display:flex;align-items:center;gap:12px;margin:20px 0;color:rgba(0,0,0,.45);font:900 11px/1 var(--font)}.divider::before,.divider::after{content:'';flex:1;height:2px;background:rgba(0,0,0,.1)}
+.tg-link,.sub-url,.term{font:800 13px/1.45 var(--font);word-break:break-word;overflow-wrap:anywhere;background:#fff;padding:13px;border:0;border-radius:8px;color:#000;margin:12px 0}
+.status-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#000;animation:pulse 1s ease-in-out infinite;margin-right:8px}.status-dot.ok{background:#000}@keyframes pulse{50%{opacity:.4;transform:scale(.72)}}
+.step-header{display:flex;align-items:center;gap:12px;margin-bottom:18px}.step-num{width:34px;height:34px;background:#000;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;flex:0 0 auto}.step-title{font:900 16px/1.15 var(--font);color:#000}
+.device-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin:16px 0}.device-card{background:#fff;border:0;border-radius:8px;padding:16px;text-align:center;cursor:pointer;color:#000}.device-card:hover,.device-card.selected{background:#000;color:#fff}.device-card .di{font-size:24px;display:block;margin-bottom:7px}.device-card .dn{font:900 11px/1.1 var(--font);color:inherit}.ios-region{display:none;gap:10px;margin-top:14px}.ios-region.show{display:flex}.region-btn{flex:1;padding:.78rem;border:2px solid #000;border-radius:14px;background:transparent;color:#000;cursor:pointer;font:900 12px/1 var(--font)}.region-btn:hover,.region-btn.sel{background:#000;color:#fff}.copy-row{display:flex;gap:8px;flex-wrap:wrap}.dim{border:0;border-top:2px solid rgba(0,0,0,.08)}
+
+#cabinet{align-items:center}.cabinet-inner{width:100%;max-width:1120px}.cabinet-inner h2{font:900 clamp(32px,5vw,68px)/.98 var(--font)!important;letter-spacing:0!important;color:#000!important;text-transform:uppercase}.cabinet-inner p{font:800 14px/1.3 var(--font)!important;color:rgba(0,0,0,.55)!important;letter-spacing:0!important}.cab-shell{display:grid;grid-template-columns:220px 1fr;gap:14px;margin-top:24px;width:100%}.cab-sidebar{padding:12px;position:sticky;top:84px;align-self:start}.cab-tab-btn{width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;background:transparent;border:0;border-radius:12px;color:rgba(0,0,0,.58);font:900 12px/1.1 var(--font);padding:13px 11px;margin-bottom:4px;cursor:pointer;text-align:left}.cab-tab-btn::after{content:'>';opacity:.25}.cab-tab-btn:hover,.cab-tab-btn.active{background:#000;color:#fff}.cab-content{min-width:0}.cab-content-panel{display:none}.cab-content-panel.active{display:block}.cab-quick{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:12px}.cab-panel{padding:20px;min-width:0}.cab-panel h3{font:900 15px/1.15 var(--font);color:#000;margin-bottom:14px}.cab-panel h3::before{content:''}.stat-row{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:2px solid rgba(0,0,0,.06);font-size:14px}.stat-row:last-child{border:0}.stat-label{color:rgba(0,0,0,.5)}.stat-val{font-weight:900;color:#000}.sub-bar{background:rgba(0,0,0,.08);border:0;border-radius:999px;height:7px;overflow:hidden}.sub-bar-fill{height:100%;background:#000}.dev-item{display:flex;justify-content:space-between;gap:10px;padding:12px 0;border-bottom:2px solid rgba(0,0,0,.06)}.dev-name{font-weight:900}.dev-srv{color:rgba(0,0,0,.45);font-size:13px}.dev-del{background:transparent;border:2px solid #000;border-radius:12px;color:#000;font:900 12px/1 var(--font);padding:.35rem .6rem;cursor:pointer}.dev-del:hover{background:#000;color:#fff}.add-dev-row{display:flex;gap:8px;margin-top:16px}.ticket-item{padding:14px;border:0;border-radius:8px;background:#fff;margin-bottom:8px;cursor:pointer}.ticket-item:hover{background:#000;color:#fff}.ticket-item .tst{display:flex;justify-content:space-between;gap:10px;margin-bottom:6px}.ticket-status{font:900 10px/1 var(--font);padding:4px 8px;border:2px solid currentColor;border-radius:999px}.ticket-status.open,.ticket-status.closed{color:inherit;background:transparent}.ticket-subj{font-weight:800;color:inherit}.ticket-msg{font-size:13px;padding:10px;margin-top:7px;background:#f2f2f2;border-radius:6px;color:#000}.ticket-msg .who{font-size:11px;color:rgba(0,0,0,.45);margin-bottom:4px}.new-ticket-row{display:flex;flex-direction:column;gap:8px;margin-top:16px}.new-ticket-row textarea{resize:vertical;min-height:92px}.happ-link-btn{display:block;width:100%;padding:1rem;background:#000;border:0;border-radius:14px;color:#fff;font:900 13px/1 var(--font);text-align:center;margin-bottom:10px}.happ-link-btn:hover{opacity:.82}.happ-link-btn.blue{color:#fff}.happ-link-btn.big{font-size:15px;padding:1.05rem 1.3rem;margin-top:18px}.success-title{font:900 clamp(26px,4vw,44px)/1 var(--font);color:#000;margin-bottom:16px}.term-line::before{content:'> ';color:rgba(0,0,0,.35)}.term .cursor{display:inline-block;width:8px;height:1em;background:#000;animation:blink .7s step-end infinite;vertical-align:text-bottom}@keyframes blink{50%{opacity:0}}
+#toast-area{position:fixed;bottom:20px;right:20px;left:auto;z-index:999;display:flex;flex-direction:column;gap:8px;max-width:calc(100vw - 40px)}.toast{background:#000;border:0;border-radius:12px;padding:12px 16px;font:900 13px/1.2 var(--font);min-width:min(220px,100%);color:#fff}.toast.ok,.toast.err,.toast.info{color:#fff}
+#loading{position:fixed;inset:0;background:#000;z-index:9999;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:1rem;transition:opacity .35s;color:#fff}#loading.hide{opacity:0;pointer-events:none}.load-logo{font:900 clamp(28px,5vw,54px)/1 var(--font);color:#fff}.load-bar{width:220px;height:4px;background:rgba(255,255,255,.18);overflow:hidden;border-radius:999px}.load-bar::after{content:'';display:block;width:50%;height:100%;background:#fff;animation:load-sweep 1s ease-in-out infinite}@keyframes load-sweep{0%{transform:translateX(-100%)}100%{transform:translateX(300%)}}.loader-note{font:900 10px/1 var(--font);color:rgba(255,255,255,.55);letter-spacing:2px}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:500;align-items:center;justify-content:center;backdrop-filter:blur(4px);padding:18px}.modal-overlay.open{display:flex}.modal{position:relative;background:#fff;border:0;border-radius:8px;padding:clamp(20px,4vw,32px);max-width:560px;width:min(92vw,560px);max-height:90vh;overflow-y:auto;color:#000}.modal-close{position:absolute;top:10px;right:13px;background:transparent;border:0;color:#000;font-size:22px;cursor:pointer}.mt1{margin-top:.5rem}.mt2{margin-top:1rem}.mt3{margin-top:1.5rem}.mt4{margin-top:2rem}.flex{display:flex}.gap1{gap:.5rem}.gap2{gap:1rem}.wrap{flex-wrap:wrap}.center{align-items:center}.jc{justify-content:center}.mono{font-family:var(--font);font-weight:900;color:rgba(0,0,0,.56)}
+
+@media(max-width:900px){
+  nav{height:72px;grid-template-columns:minmax(118px,1fr) 48px;padding:0 18px;gap:12px}.logo img{width:clamp(140px,38vw,176px);max-height:44px}.menu-toggle{display:inline-flex;align-items:center;justify-content:center;justify-self:end;width:44px;height:44px;border:0;border-radius:12px;background:#fff;color:#000;font:900 22px/1 var(--font);cursor:pointer}.menu-toggle::before{content:'≡';transform:translateY(-1px)}.menu-toggle.open::before{content:'×';font-size:26px}.nav-right{position:fixed;top:72px;right:14px;left:14px;z-index:120;display:flex;flex-direction:column;align-items:stretch;gap:0;padding:12px;background:#000;color:#fff;border-radius:0 0 8px 8px;box-shadow:0 18px 40px rgba(0,0,0,.28);transform:translateY(-18px);opacity:0;pointer-events:none;transition:transform .24s var(--ease),opacity .24s ease}.nav-right.open{transform:translateY(0);opacity:1;pointer-events:auto}.nav-btn,.nav-btn:first-child,.nav-btn.cabinet-btn,.nav-btn.accent,#btnLogout{display:flex!important;width:100%;justify-content:flex-start;text-align:left;max-width:none;white-space:normal;font-size:14px;line-height:1.1;padding:16px 14px;border-radius:6px}.nav-btn:hover{background:#fff;color:#000;opacity:1;transform:none}.nav-btn[style*='display: none'],.nav-btn[style*='display:none'],#btnLogout[style*='display: none'],#btnLogout[style*='display:none']{display:none!important}
+  .section{min-height:calc(100svh - 72px);padding:34px 18px;align-items:center}#hero{height:calc(100svh - 72px);min-height:0;padding:42px 20px 30px;align-items:stretch}.hero-inner{max-width:100%}.hero-title{gap:12px;font-size:clamp(44px,14.5vw,66px);line-height:.91;margin-bottom:14px;max-width:100%}.hero-title span{max-width:100%;overflow-wrap:break-word}.value-stage{height:74px;margin-top:10px}.value-pill{height:58px;min-width:min(var(--pill-width,300px),calc(100vw - 40px));border-radius:18px;padding:0 18px;transform:rotate(calc(var(--pill-rotation,0deg) * .65))}.value-pill span{font-size:clamp(30px,9.5vw,42px)}.hero-sub{max-width:100%;margin-top:16px;font-size:clamp(15px,4.2vw,18px);line-height:1.24}.hero-sub br{display:none}.cta-row{margin-top:22px;width:100%;max-width:390px}.btn{width:100%;min-height:48px;border-radius:15px;font-size:13px;padding:.82rem 1rem}.hero-progress{position:static;transform:none;display:flex;justify-content:center;gap:9px;margin-top:18px}.hero-progress .dot{width:34px;height:7px}.hero-progress .dot.active{transform:scaleX(1.18)}
+  .section-head{margin-bottom:22px}.section-head h2{font-size:clamp(34px,10vw,56px);line-height:1}.section-head p{font-size:14px}.plans-grid{grid-template-columns:1fr;gap:10px}.plan-card{min-height:0;padding:18px}.auth-box,.setup-box,.success-box{max-width:none;padding:20px}.auth-tabs{gap:4px}.auth-tab{font-size:12px}.device-cards{grid-template-columns:1fr 1fr}.ios-region{flex-direction:column}.cab-shell{grid-template-columns:1fr;gap:12px;margin-top:18px}.cab-sidebar{position:static;display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:8px}.cab-tab-btn{margin-bottom:0;font-size:11px;padding:11px 9px}.cab-quick{grid-template-columns:1fr}.copy-row,.add-dev-row,.setup-box .flex{flex-direction:column}.stat-row,.dev-item{align-items:flex-start;flex-direction:column}.modal-overlay{padding:12px}#toast-area{left:12px;right:12px;bottom:12px;max-width:none}.toast{width:100%}
+}
+@media(max-width:420px){
+  nav{height:68px;padding:0 14px}.logo img{width:132px;max-height:40px}.nav-right{top:68px;left:10px;right:10px}.nav-btn,.nav-btn:first-child,.nav-btn.cabinet-btn,.nav-btn.accent,#btnLogout{font-size:13px;padding:15px 12px}.section{min-height:calc(100svh - 68px);padding:30px 16px}#hero{height:calc(100svh - 68px);min-height:0;padding:34px 18px 26px}.hero-title{font-size:clamp(38px,14vw,52px);gap:10px}.value-stage{height:66px}.value-pill{height:52px;min-width:min(var(--pill-width,280px),calc(100vw - 36px));border-radius:16px}.value-pill span{font-size:clamp(28px,9vw,36px)}.hero-sub{font-size:14px}.cab-sidebar,.device-cards{grid-template-columns:1fr}.plan-card.popular::after{position:static;align-self:flex-start;margin-bottom:8px;order:-1}.plan-name{max-width:100%}
+}
+@media(max-height:680px) and (max-width:900px){
+  #hero{padding-top:24px}.hero-title{font-size:clamp(34px,12vw,48px);gap:8px}.value-stage{height:58px;margin-top:8px}.value-pill{height:48px;min-width:min(var(--pill-width,260px),calc(100vw - 36px));border-radius:14px}.value-pill span{font-size:clamp(25px,8.2vw,34px)}.hero-sub{margin-top:10px;font-size:13px;line-height:1.18}.cta-row{margin-top:14px}.btn{min-height:44px}.hero-progress{margin-top:12px}
+}
+@media(orientation:landscape) and (max-height:520px){
+  nav{height:62px;padding:0 16px}.nav-right{top:62px}.section{min-height:calc(100svh - 62px)}#hero{min-height:calc(100svh - 62px);padding:18px 24px}.hero-title{font-size:clamp(36px,7vw,58px);gap:8px}.value-stage{height:52px;margin-top:8px}.value-pill{height:44px;min-width:min(var(--pill-width,300px),50vw);border-radius:14px}.value-pill span{font-size:clamp(25px,4vw,36px)}.hero-sub{max-width:64vw;margin-top:8px;font-size:13px;line-height:1.15}.cta-row{margin-top:12px;width:auto}.cta-row .btn{width:auto;min-width:260px}.hero-progress{position:absolute;right:18px;top:auto;bottom:18px;display:flex;transform:none;margin:0}.hero-progress .dot{width:28px;height:7px}
+}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition-duration:1ms!important;animation-duration:1ms!important}}
+
+
+#cabinet{align-items:center;background:#fff}.cabinet-inner{width:100%;max-width:1180px}.cabinet-top{display:grid;grid-template-columns:minmax(0,1fr) minmax(280px,380px);gap:16px;align-items:stretch;margin-bottom:16px}.cab-title-block{background:#f3f3f3;border-radius:8px;padding:24px}.cab-title-block h2{font:900 clamp(38px,5.6vw,76px)/.92 var(--font)!important;letter-spacing:0!important;color:#000!important;text-transform:uppercase;margin:0}.cab-title-block p{font:800 14px/1.35 var(--font)!important;color:rgba(0,0,0,.55)!important;letter-spacing:0!important;margin-top:10px}.cab-wallet{background:#000;color:#fff;border-radius:8px;padding:22px;display:flex;flex-direction:column;gap:14px;justify-content:space-between}.cab-wallet-label{font:900 12px/1 var(--font);color:rgba(255,255,255,.55);text-transform:uppercase}.cab-wallet-balance{font:900 clamp(34px,4vw,58px)/.92 var(--font);letter-spacing:0}.cab-wallet-meta{font:800 13px/1.35 var(--font);color:rgba(255,255,255,.62)}.cab-wallet-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}.cab-wallet-actions .btn{width:100%;border-radius:14px}.cab-wallet-actions .btn-secondary{border-color:#fff;color:#fff}.cab-wallet-actions .btn-secondary:hover{background:#fff;color:#000}.cab-shell{display:grid;grid-template-columns:230px minmax(0,1fr);gap:16px;width:100%;margin-top:0}.cab-sidebar{position:sticky;top:102px;align-self:start;background:#f3f3f3;border-radius:8px;padding:10px;display:flex;flex-direction:column;gap:6px}.cab-tab-btn{width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;background:transparent;border:0;border-radius:8px;color:rgba(0,0,0,.58);font:900 12px/1.1 var(--font);padding:13px 12px;cursor:pointer;text-align:left}.cab-tab-btn::after{content:'>';opacity:.22}.cab-tab-btn:hover,.cab-tab-btn.active{background:#000;color:#fff}.cab-content{min-width:0}.cab-quick{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:12px}.cab-kpi{background:#f3f3f3;border-radius:8px;padding:16px;min-height:96px}.cab-kpi-label{font:900 11px/1 var(--font);text-transform:uppercase;color:rgba(0,0,0,.5);margin-bottom:10px}.cab-kpi-value{font:900 clamp(22px,2.2vw,34px)/1 var(--font);color:#000;overflow-wrap:anywhere}.cab-kpi-note{font:800 12px/1.3 var(--font);color:rgba(0,0,0,.55);margin-top:8px}.cab-panel{background:#f3f3f3;border-radius:8px;padding:20px;color:#000;box-shadow:none;min-width:0}.cab-panel h3{font:900 20px/1.05 var(--font);color:#000;margin:0 0 16px;text-transform:uppercase}.cab-grid-two{display:grid;grid-template-columns:1fr 1fr;gap:12px}.cab-action-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.stat-row{display:flex;justify-content:space-between;gap:14px;padding:12px 0;border-bottom:2px solid rgba(0,0,0,.06);font-size:14px}.stat-row:last-child{border:0}.stat-label{color:rgba(0,0,0,.52)}.stat-val{font-weight:900;color:#000;text-align:right;overflow-wrap:anywhere}.sub-bar{background:rgba(0,0,0,.08);border-radius:999px;height:8px;overflow:hidden;margin-top:10px}.sub-bar-fill{height:100%;background:#000}.dev-item{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:12px;background:#fff;border-radius:8px;margin-bottom:8px}.dev-name{font-weight:900}.dev-srv{color:rgba(0,0,0,.45);font-size:13px;margin-top:4px}.dev-del{background:transparent;border:2px solid #000;border-radius:10px;color:#000;font:900 12px/1 var(--font);padding:.42rem .62rem;cursor:pointer}.dev-del:hover{background:#000;color:#fff}.add-dev-row{display:flex;gap:8px;margin-top:12px}.ticket-item{padding:14px;border-radius:8px;background:#fff;margin-bottom:8px;cursor:pointer}.ticket-item:hover{background:#000;color:#fff}.ticket-item:hover .ticket-msg{background:#fff;color:#000}.ticket-item .tst{display:flex;justify-content:space-between;gap:10px;margin-bottom:8px}.ticket-status{font:900 10px/1 var(--font);padding:4px 8px;border:2px solid currentColor;border-radius:999px}.ticket-subj{font-weight:900}.ticket-msg{font-size:13px;padding:10px;margin-top:8px;background:#f2f2f2;border-radius:6px;color:#000}.ticket-msg .who{font-size:11px;color:rgba(0,0,0,.45);margin-bottom:4px}.new-ticket-row{display:flex;flex-direction:column;gap:8px;margin-top:14px}.new-ticket-row textarea{resize:vertical;min-height:96px}.happ-link-btn{display:flex;align-items:center;justify-content:center;width:100%;padding:1rem;background:#000;border:0;border-radius:14px;color:#fff;font:900 14px/1 var(--font);text-align:center;margin-bottom:10px}.balance-chip{display:inline-flex;align-items:center;min-height:38px;padding:0 12px;border-radius:12px;background:#f3f3f3;color:#000;font:900 13px/1 var(--font)}.topup-presets{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0}.topup-preset{border:2px solid #000;background:#fff;color:#000;border-radius:12px;padding:12px;font:900 14px/1 var(--font);cursor:pointer}.topup-preset:hover{background:#000;color:#fff}.topup-input{width:100%;background:#f3f3f3!important;border:2px solid rgba(0,0,0,.12)!important;border-radius:12px!important;color:#000!important;font:900 18px/1 var(--font)!important;padding:14px!important;outline:none!important}.topup-input:focus{border-color:#000!important}@media(max-width:900px){.cabinet-top{grid-template-columns:1fr}.cab-wallet-actions{grid-template-columns:1fr}.cab-shell{grid-template-columns:1fr}.cab-sidebar{position:static;display:grid;grid-template-columns:1fr 1fr;gap:6px}.cab-quick{grid-template-columns:1fr}.cab-grid-two{grid-template-columns:1fr}.add-dev-row{flex-direction:column}.stat-row{flex-direction:column}.stat-val{text-align:left}.topup-presets{grid-template-columns:1fr 1fr}.cab-title-block,.cab-wallet,.cab-panel{padding:18px}}
+
+</style>
+</head>
+<body>
+
+<div id="loading">
+  <div class="load-logo">BOSS<span style="color:#fff">VPN</span></div>
+  <div class="load-bar"></div>
+  <small class="loader-note">ЗАГРУЗКА</small>
+</div>
+
+<canvas id="matrix"></canvas>
+
+<div id="app">
+
+<nav>
+  <div class="logo"><img src="/assets/vpnboss-logo.png" alt="VPNBOSS"></div>
+  <button class="menu-toggle" id="menuToggle" type="button" aria-label="Открыть меню" aria-expanded="false"></button>
+  <div class="nav-right" id="navRight">
+    <button class="nav-btn" onclick="showSection('plans')">Главная</button>
+    <button class="nav-btn cabinet-btn" id="btnCabinet" onclick="showSection('cabinet')">Связь</button>
+    <button class="nav-btn accent" id="btnLogin" onclick="showSection('auth')">Вход | Регистрация</button>
+    <button class="nav-btn" id="btnLogout" onclick="showSection('cabinet')" style="display:none">Личный кабинет</button>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="section active" id="hero">
+  <div class="hero-inner">
+    <h1 class="hero-title" data-text="VPNBOSS">
+      <span>ВПН</span>
+      <span id="heroHeadingLine">С КОТОРЫМ ВСЕ</span>
+    </h1>
+    <div class="value-stage" aria-hidden="true">
+      <div class="value-pill" id="valuePill"><span id="valueWord">ПРОСТО</span></div>
+    </div>
+    <p class="hero-sub" id="heroDescription">Собственный, удобный клиент или <br>возможность использовать сторонние <br>клиенты (V2RayTun, HAPP, V2Box, и тд.) <br>Настройка в 2 клика</p>
+    <div class="cta-row">
+      <button class="btn btn-primary" onclick="showSection('plans')">Подключить сегодня</button>
+      
+    </div>
+  </div>
+  <div class="hero-progress" aria-label="Состояние первого экрана">
+    <button class="dot active" data-hero-state="0" aria-label="ПРОСТО"></button>
+    <button class="dot" data-hero-state="1" aria-label="ПРИВАТНО"></button>
+    <button class="dot" data-hero-state="2" aria-label="ЭКОНОМИШЬ"></button>
+  </div>
+</section>
+
+<!-- PLANS -->
+<section class="section" id="plans">
+  <div class="section-head">
+    <h2>ТАРИФНЫЕ ПЛАНЫ</h2>
+    <p>// ВЫБЕРИТЕ УРОВЕНЬ ДОСТУПА</p>
+  </div>
+  <div class="plans-grid" id="plansGrid"></div>
+  
+</section>
+
+<!-- AUTH -->
+<section class="section" id="auth">
+  <div class="auth-box">
+    <div class="section-head" style="margin-bottom:1.5rem;text-align:left">
+      <h2 style="font-size:1.1rem">ДОСТУП</h2>
+      <p style="font-size:.65rem">// OAuth ЧЕРЕЗ TELEGRAM + БЫСТРЫЙ WEB-ВХОД</p>
+    </div>
+
+    <div class="auth-intro">
+      <strong>САМЫЙ БЫСТРЫЙ ВХОД</strong>
+      <p>Нажмите кнопку Telegram OAuth. Бот подтвердит аккаунт, сайт авторизует вас автоматически, а профиль можно дополнить позже.</p>
+    </div>
+
+    <div class="auth-tabs">
+      <button class="auth-tab active" onclick="switchTab('login')">ВХОД</button>
+      <button class="auth-tab" onclick="switchTab('register')">РЕГИСТРАЦИЯ</button>
+    </div>
+
+    <div class="auth-tab-pane active" id="tab-login">
+      <div class="field">
+        <label>EMAIL, TELEGRAM USERNAME ИЛИ ТЕЛЕФОН</label>
+        <input type="text" id="loginId" placeholder="user@mail.ru / @username / +79991234567">
+      </div>
+      <div class="field">
+        <label>ПАРОЛЬ</label>
+        <input type="password" id="loginPw" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
+      </div>
+      <button class="btn btn-primary btn-full" onclick="doLogin()">ВОЙТИ</button>
+
+      <div class="divider">ИЛИ</div>
+
+      <div class="tg-auth-box">
+        <p>Войти через <b style="color:var(--c)">Telegram OAuth</b> без пароля</p>
+        <button class="btn btn-secondary btn-full" onclick="initTgAuth('login')">ВОЙТИ ЧЕРЕЗ TELEGRAM OAUTH</button>
+        <div id="tgAuthAreaLogin" class="tg-auth-area">
+          <p class="tg-auth-label">Откройте ссылку в Telegram:</p>
+          <a id="tgLinkLogin" class="tg-link" href="#" target="_blank"></a>
+          <p class="tg-auth-status"><span class="status-dot"></span><span id="tgStatusLogin">Ожидание входа через Telegram...</span></p>
+        </div>
+      </div>
+    </div>
+
+    <div class="auth-tab-pane" id="tab-register">
+      <div class="field">
+        <label>ИМЯ В ПРОФИЛЕ</label>
+        <input type="text" id="regName" placeholder="Например: Alex">
+      </div>
+      <div class="field">
+        <label>TELEGRAM USERNAME ИЛИ ТЕЛЕФОН</label>
+        <input type="text" id="regLogin" placeholder="@username / +79991234567">
+      </div>
+      <div class="field">
+        <label>ЭЛЕКТРОННАЯ ПОЧТА</label>
+        <input type="email" id="regEmail" placeholder="your@email.com">
+      </div>
+      <div class="field">
+        <label>ПАРОЛЬ</label>
+        <input type="password" id="regPw" placeholder="Минимум 6 символов">
+      </div>
+      <div class="field">
+        <label>ПОВТОРИТЕ ПАРОЛЬ</label>
+        <input type="password" id="regPw2" placeholder="Повторите пароль" onkeydown="if(event.key==='Enter')doRegister()">
+      </div>
+      <button class="btn btn-primary btn-full" onclick="doRegister()">СОЗДАТЬ АККАУНТ</button>
+      <div class="auth-hint">Регистрация по паролю привязывается к вашему Telegram-аккаунту. Если бот ещё не знает вас, сначала используйте Telegram OAuth.</div>
+
+      <div class="divider">ИЛИ</div>
+      <div class="tg-auth-box">
+        <p>Быстрая регистрация через <b style="color:var(--c)">Telegram OAuth</b></p>
+        <button class="btn btn-secondary btn-full" onclick="initTgAuth('register')">ЗАРЕГИСТРИРОВАТЬСЯ ЧЕРЕЗ TELEGRAM OAUTH</button>
+        <div id="tgAuthAreaRegister" class="tg-auth-area">
+          <p class="tg-auth-label">Откройте ссылку в Telegram:</p>
+          <a id="tgLinkRegister" class="tg-link" href="#" target="_blank"></a>
+          <p class="tg-auth-status"><span class="status-dot"></span><span id="tgStatusRegister">Ожидание регистрации через Telegram...</span></p>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top:1.5rem;text-align:center">
+      <button class="btn btn-secondary btn-sm" onclick="showSection('plans')">К ТАРИФАМ</button>
+    </div>
+  </div>
+</section>
+
+<!-- SETUP -->
+<section class="section" id="setup">
+  <div class="setup-box">
+    <div class="section-head" style="text-align:left;margin-bottom:2rem">
+      <h2 style="font-size:1.1rem">НАСТРОЙКА ПОДКЛЮЧЕНИЯ</h2>
+      <p style="font-size:.65rem">// СЛЕДУЙТЕ ИНСТРУКЦИИ</p>
+    </div>
+
+    <div id="stepDevice">
+      <div class="step-header">
+        <div class="step-num">01</div>
+        <div class="step-title">ВЫБЕРИТЕ УСТРОЙСТВО</div>
+      </div>
+      <div class="device-cards">
+        <div class="device-card" onclick="selectDevice('ios')"><span class="di">📱</span><div class="dn">iPHONE / iPAD</div></div>
+        <div class="device-card" onclick="selectDevice('android')"><span class="di">🤖</span><div class="dn">ANDROID</div></div>
+        <div class="device-card" onclick="selectDevice('windows')"><span class="di">💻</span><div class="dn">WINDOWS</div></div>
+        <div class="device-card" onclick="selectDevice('mac')"><span class="di">🍎</span><div class="dn">macOS</div></div>
+      </div>
+      <div class="ios-region" id="iosRegion">
+        <button class="region-btn" onclick="selectIosRegion('ru')">App Store РФ</button>
+        <button class="region-btn" onclick="selectIosRegion('global')">App Store Global</button>
+      </div>
+      <div id="downloadRow" style="display:none;margin-top:1rem">
+        <a id="downloadBtn" href="#" target="_blank" class="btn btn-primary btn-full">СКАЧАТЬ HAPP</a>
+      </div>
+    </div>
+
+    <hr class="dim" style="margin:2rem 0">
+
+    <div id="stepName">
+      <div class="step-header">
+        <div class="step-num">02</div>
+        <div class="step-title">НАЗВАНИЕ УСТРОЙСТВА</div>
+      </div>
+      <div class="flex gap1 mt2">
+        <input id="devNameInput" type="text" placeholder="iPhone 15, Windows PC..." style="flex:1">
+        <button class="btn btn-primary" onclick="addDevice()">ДОБАВИТЬ</button>
+      </div>
+    </div>
+
+    <hr class="dim" style="margin:2rem 0">
+
+    <div id="stepConnect">
+      <div class="step-header">
+        <div class="step-num">03</div>
+        <div class="step-title">ПОДКЛЮЧИТЕСЬ</div>
+      </div>
+      <div class="connect-card" id="connectCard" style="display:none">
+        <p>Ссылка подписки (копировать в HAPP):</p>
+        <div class="sub-url" id="subUrlDisplay">загрузка...</div>
+        <div class="copy-row">
+          <button class="btn btn-secondary btn-sm" onclick="copySubUrl()">КОПИРОВАТЬ</button>
+          <a id="happDeepLink" href="#" class="btn btn-primary btn-sm">ОТКРЫТЬ В HAPP</a>
+        </div>
+        <p>В HAPP: нажмите + → «Добавить по ссылке» → вставьте</p>
+      </div>
+      <p id="noSubMsg" style="display:none;color:var(--y);font-family:var(--font-mono);font-size:.75rem">Активируйте подписку в Кабинете</p>
+    </div>
+
+    <div style="margin-top:2rem">
+      <button class="btn btn-secondary" onclick="showSection('cabinet')">ПЕРЕЙТИ В КАБИНЕТ</button>
+    </div>
+  </div>
+</section>
+
+<!-- CABINET -->
+<section class="section" id="cabinet">
+  <div class="cabinet-inner">
+    <div class="cabinet-top">
+      <div class="cab-title-block">
+        <h2>ЛИЧНЫЙ КАБИНЕТ</h2>
+        <p>Баланс, подписка, устройства и поддержка в одном месте.</p>
+      </div>
+      <div class="cab-wallet" id="cabWallet">
+        <div>
+          <div class="cab-wallet-label">Баланс</div>
+          <div class="cab-wallet-balance" id="cabBalanceBig">0 руб</div>
+          <div class="cab-wallet-meta" id="cabWalletMeta">Загрузка аккаунта...</div>
+        </div>
+        <div class="cab-wallet-actions">
+          <button class="btn btn-primary" onclick="openTopUpModal()">Пополнить</button>
+          <button class="btn btn-secondary" onclick="showSection('plans')">Тарифы</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="cab-shell">
+      <div class="cab-sidebar">
+        <button class="cab-tab-btn active" onclick="switchCabTab('profile')">ОБЗОР</button>
+        <button class="cab-tab-btn" onclick="switchCabTab('connect')">ПОДКЛЮЧЕНИЕ</button>
+        <button class="cab-tab-btn" onclick="switchCabTab('tariff')">ТАРИФ</button>
+        <button class="cab-tab-btn" onclick="switchCabTab('devices')">УСТРОЙСТВА</button>
+        <button class="cab-tab-btn" onclick="switchCabTab('support')">ПОДДЕРЖКА</button>
+      </div>
+
+      <div class="cab-content">
+        <div class="cab-quick" id="cabQuick"></div>
+        <div class="cab-content-panel active" id="cab-tab-profile">
+          <div class="cab-panel">
+            <h3>Обзор</h3>
+            <div id="profileStats"></div>
+          </div>
+        </div>
+        <div class="cab-content-panel" id="cab-tab-connect">
+          <div class="cab-panel">
+            <h3>Подключение</h3>
+            <div id="connectSection"></div>
+          </div>
+        </div>
+        <div class="cab-content-panel" id="cab-tab-tariff">
+          <div class="cab-panel">
+            <h3>Тариф</h3>
+            <div id="buyPlanSection"></div>
+          </div>
+        </div>
+        <div class="cab-content-panel" id="cab-tab-devices">
+          <div class="cab-panel">
+            <h3>Устройства</h3>
+            <div id="devicesList"></div>
+            <div class="add-dev-row" id="addDevRow" style="display:none">
+              <input id="newDevName" type="text" placeholder="Название устройства...">
+              <button class="btn btn-primary btn-sm" onclick="addDevCabinet()">Добавить</button>
+            </div>
+          </div>
+        </div>
+        <div class="cab-content-panel" id="cab-tab-support">
+          <div class="cab-panel">
+            <h3>Поддержка</h3>
+            <div id="ticketsList"></div>
+            <div class="new-ticket-row" id="newTicketRow">
+              <textarea id="newTicketText" placeholder="Опишите проблему..."></textarea>
+              <button class="btn btn-primary btn-sm" onclick="createTicket()">Отправить тикет</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="payment-success">
+  <div class="success-box">
+    <div class="status-dot ok"></div>
+    <h2 class="success-title">ОПЛАТА ПРОШЛА УСПЕШНО</h2>
+    <div class="term" id="paymentSuccessInfo" style="text-align:left;margin:1.2rem 0"></div>
+    <a id="paymentHappLink" href="#" class="happ-link-btn big">ДОБАВИТЬ ПОДПИСКУ</a>
+    <button class="btn btn-secondary btn-full" onclick="showSection('cabinet')" style="margin-top:.8rem">ЛИЧНЫЙ КАБИНЕТ</button>
+  </div>
+</section>
+
+</div>
+
+<div id="toast-area"></div>
+
+<div class="modal-overlay" id="planModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('planModal')">x</button>
+    <div id="planModalContent"></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="topUpModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('topUpModal')">x</button>
+    <div id="topUpModalContent"></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="ticketModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('ticketModal')">x</button>
+    <div id="ticketModalContent"></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="requiredProfileModal">
+  <div class="modal required-profile-modal">
+    <div id="requiredProfileModalContent"></div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const c=document.getElementById('matrix'),ctx=c.getContext('2d');
+  const chars='ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%^&*()アイウエオカキクケコサシスセソタチツテトナニヌネノ';
+  let cols,drops;
+  function resize(){c.width=window.innerWidth;c.height=window.innerHeight;cols=Math.floor(c.width/16);drops=Array(cols).fill(1)}
+  function draw(){
+    ctx.fillStyle='rgba(0,5,8,.05)';ctx.fillRect(0,0,c.width,c.height);
+    ctx.fillStyle='#00ff41';ctx.font='14px Share Tech Mono';
+    drops.forEach((y,i)=>{
+      const ch=chars[Math.floor(Math.random()*chars.length)];
+      ctx.fillStyle=`rgba(0,255,65,${Math.random()>.92?1:.3})`;
+      ctx.fillText(ch,i*16,y*16);
+      if(y*16>c.height&&Math.random()>.975)drops[i]=0;
+      drops[i]++;
+    });
+  }
+  resize();window.addEventListener('resize',resize);
+  setInterval(draw,45);
+})();
+
+let STATE={token:localStorage.getItem('bvpn_token'),user:null,selectedPlan:null,tgPollInterval:null,paymentPollInterval:null,tgAuthMode:null};
+const SECTION_PATHS={hero:'/',plans:'/plans',auth:'/auth',setup:'/setup',cabinet:'/cabinet','payment-success':'/payment-success'};
+const PATH_SECTIONS=Object.fromEntries(Object.entries(SECTION_PATHS).map(([k,v])=>[v,k]));
+function sectionFromPath(){return PATH_SECTIONS[window.location.pathname]||'hero'}
+
+
+function closeMobileMenu(){
+  document.getElementById('navRight')?.classList.remove('open');
+  const toggle=document.getElementById('menuToggle');
+  toggle?.classList.remove('open');
+  toggle?.setAttribute('aria-expanded','false');
+}
+function toggleMobileMenu(){
+  const menu=document.getElementById('navRight');
+  const toggle=document.getElementById('menuToggle');
+  const open=!menu?.classList.contains('open');
+  menu?.classList.toggle('open',open);
+  toggle?.classList.toggle('open',open);
+  toggle?.setAttribute('aria-expanded',open?'true':'false');
+}
+
+async function api(method,path,body){
+  const opts={method,headers:{'Content-Type':'application/json'}};
+  if(STATE.token)opts.headers['Authorization']='Bearer '+STATE.token;
+  if(body)opts.body=JSON.stringify(body);
+  const r=await fetch(path,opts);
+  const raw=await r.text();
+  let data={};
+  try{data=raw?JSON.parse(raw):{}}catch(_){}
+  if(!r.ok){
+    const msg=data.error||raw||('Ошибка сервера ('+r.status+')');
+    const err=new Error(msg);
+    err.status=r.status;
+    if(data.code)err.code=data.code;
+    if(data.needsProfileCompletion)err.needsProfileCompletion=true;
+    throw err;
+  }
+  return data;
+}
+
+function toast(msg,type='ok'){
+  const el=document.createElement('div');
+  el.className=`toast ${type}`;el.textContent=msg;
+  document.getElementById('toast-area').appendChild(el);
+  setTimeout(()=>el.remove(),3500);
+}
+
+function closeModal(id){
+  if(id==='requiredProfileModal' && STATE.user?.needsProfileCompletion)return;
+  document.getElementById(id).classList.remove('open');
+}
+function openModal(id){document.getElementById(id).classList.add('open')}
+
+function syncRequiredProfileModal(){
+  if(!STATE.user?.needsProfileCompletion){
+    closeModal('requiredProfileModal');
+    return false;
+  }
+  renderRequiredProfileModal();
+  openModal('requiredProfileModal');
+  return true;
+}
+
+function showSection(id,opts={}){
+  if(!document.getElementById(id))id='hero';
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  closeMobileMenu();
+  if(id==='cabinet')loadCabinet();
+  if(id==='setup')loadSetup();
+  if(id==='plans')renderPlans();
+  const path=SECTION_PATHS[id]||'/';
+  if(opts.updateUrl!==false && window.location.pathname!==path){
+    const method=opts.replace?'replaceState':'pushState';
+    history[method]({section:id},'',path);
+  }
+  window.scrollTo({top:0,behavior:opts.instant?'auto':'smooth'});
+}
+
+function fmtDate(d){if(!d)return '—';return new Date(d).toLocaleDateString('ru-RU')}
+function daysLeft(d){if(!d)return 0;return Math.max(0,Math.ceil((new Date(d)-Date.now())/86400000))}
+
+function switchTab(tab){
+  document.querySelectorAll('.auth-tab').forEach((t,i)=>{t.classList.toggle('active',i===(tab==='login'?0:1))});
+  document.querySelectorAll('.auth-tab-pane').forEach(p=>p.classList.remove('active'));
+  document.getElementById('tab-'+tab).classList.add('active');
+}
+
+async function doLogin(){
+  const raw=document.getElementById('loginId').value.trim();
+  const pw=document.getElementById('loginPw').value;
+  if(!raw||!pw)return toast('Заполните все поля','err');
+  try{
+    const r=await api('POST','/api/auth/login',{login:raw,password:pw});
+    await onLogin(r.token,r.telegramId);
+  }catch(e){toast(e.message,'err')}
+}
+
+async function doRegister(){
+  const displayName=document.getElementById('regName').value.trim();
+  const login=document.getElementById('regLogin').value.trim();
+  const email=document.getElementById('regEmail').value.trim();
+  const pw=document.getElementById('regPw').value;
+  const pw2=document.getElementById('regPw2').value;
+  if(!login||!email||!pw)return toast('Заполните все поля','err');
+  if(pw!==pw2)return toast('Пароли не совпадают','err');
+  try{
+    const r=await api('POST','/api/auth/register',{login,email,password:pw,displayName});
+    await onLogin(r.token,r.telegramId);
+    toast('Аккаунт создан!','ok');
+  }catch(e){toast(e.message,'err')}
+}
+
+function tgAuthRefs(mode){
+  const isRegister=mode==='register';
+  return {
+    area:document.getElementById(isRegister?'tgAuthAreaRegister':'tgAuthAreaLogin'),
+    link:document.getElementById(isRegister?'tgLinkRegister':'tgLinkLogin'),
+    status:document.getElementById(isRegister?'tgStatusRegister':'tgStatusLogin'),
+    dot:document.querySelector(`#${isRegister?'tgAuthAreaRegister':'tgAuthAreaLogin'} .status-dot`),
+    waitingText:isRegister?'Ожидание регистрации через Telegram...':'Ожидание входа через Telegram...',
+    successText:isRegister?'Регистрация через Telegram подтверждена!':'Вход через Telegram подтверждён!',
+    toastText:isRegister?'Аккаунт создан через Telegram':'Вход через Telegram выполнен'
+  };
+}
+
+async function initTgAuth(mode='login'){
+  try{
+    STATE.tgAuthMode=mode;
+    const r=await api('POST','/api/auth/tg-init',{mode});
+    const refs=tgAuthRefs(mode);
+    refs.area.style.display='block';
+    refs.link.href=r.botLink;
+    refs.link.textContent=r.botLink;
+    refs.status.textContent=refs.waitingText;
+    refs.dot.className='status-dot';
+    clearInterval(STATE.tgPollInterval);
+    STATE.tgPollInterval=setInterval(async()=>{
+      try{
+        const c=await api('GET','/api/auth/tg-check/'+r.webToken);
+        if(c.status==='confirmed'){
+          clearInterval(STATE.tgPollInterval);
+          refs.status.textContent=refs.successText;
+          refs.dot.className='status-dot ok';
+          toast(c.isNewUser?'Telegram подтвердил аккаунт. Завершите профиль в кабинете.':refs.toastText,'ok');
+          await onLogin(c.token,c.telegramId);
+        } else if(c.status==='expired' || c.status==='not_found'){
+          clearInterval(STATE.tgPollInterval);
+          refs.status.textContent='Ссылка истекла. Запустите OAuth ещё раз.';
+          refs.dot.className='status-dot';
+        }
+      }catch(e){}
+    },2000);
+    setTimeout(()=>clearInterval(STATE.tgPollInterval),600000);
+  }catch(e){toast(e.message,'err')}
+}
+
+async function onLogin(token,tid){
+  STATE.token=token;
+  localStorage.setItem('bvpn_token',token);
+  updateNavAuth(true);
+  const user=await loadUser();
+  toast('Добро пожаловать!','ok');
+  if(user?.needsProfileCompletion){
+    syncRequiredProfileModal();
+    return;
+  }
+  if(STATE.selectedPlan){openPlanModal(STATE.selectedPlan)}
+  else{showSection('cabinet')}
+}
+
+async function doLogout(){
+  try{await api('POST','/api/auth/logout')}catch(e){}
+  STATE.token=null;STATE.user=null;
+  localStorage.removeItem('bvpn_token');
+  updateNavAuth(false);
+  showSection('hero');
+  toast('Вы вышли','info');
+}
+
+function updateNavAuth(loggedIn){
+  document.getElementById('btnLogin').style.display=loggedIn?'none':'';
+  document.getElementById('btnLogout').style.display=loggedIn?'':'none';
+  // Cabinet button always visible
+}
+
+function switchCabTab(tab){
+  document.querySelectorAll('.cab-tab-btn').forEach(b=>b.classList.toggle('active',b.textContent.trim().toLowerCase()===({
+    profile:'обзор',connect:'подключение',tariff:'тариф',devices:'устройства',support:'поддержка'
+  }[tab])));
+  document.querySelectorAll('.cab-content-panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('cab-tab-'+tab)?.classList.add('active');
+}
+
+const PLANS_CACHE=[
+  {key:'start',name:'Старт',price:30,days:30,devices:1,gb:25,has_russia:false,bypass_bs:false,extra_fast:false,desc:'Базовый · 25 ГБ · 1 устройство · Европа'},
+  {key:'pro',name:'PRO',price:75,days:30,devices:3,gb:75,has_russia:false,bypass_bs:false,extra_fast:false,desc:'75 ГБ · 3 устройства · Европа',popular:true},
+  {key:'prime',name:'Prime',price:85.25,days:30,devices:4,gb:null,has_russia:true,bypass_bs:false,extra_fast:false,desc:'Безлимит · 4 устройства · Россия + Европа'},
+  {key:'ultra_prime',name:'ULTRA-PRIME',price:120.45,days:30,devices:6,gb:null,has_russia:true,bypass_bs:false,extra_fast:true,desc:'Безлимит · 6 устройств · Россия + Европа · EXTRA FAST'},
+  {key:'custom',name:'CUSTOM',price:0,days:30,devices:1,gb:10,has_russia:false,bypass_bs:false,extra_fast:false,desc:'Соберите тариф под себя',custom:true},
+];
+
+const CUSTOM_PRICING={per_device:7,per_gb:0.7,min_gb:10,extra_fast:60,russia:25};
+
+function formatPriceRub(value){
+  const amount=Number(value||0);
+  return Number.isInteger(amount)?String(amount):amount.toFixed(2).replace(/\.00$/,'');
+}
+
+function getPlanRoutesLabel(plan){
+  return plan.has_russia?'Россия + Европа':'Европа';
+}
+
+function applyUserDiscount(price){
+  const disc=STATE.user?.discount||0;
+  return disc?Math.round(Number(price||0)*(1-disc/100)*100)/100:Number(price||0);
+}
+
+function buildCustomPlanState(base={}){
+  const devices=Math.max(1,Math.min(20,parseInt(base.devices||1,10)||1));
+  const gb=Math.max(CUSTOM_PRICING.min_gb,parseInt(base.gb||CUSTOM_PRICING.min_gb,10)||CUSTOM_PRICING.min_gb);
+  const hasRussia=!!base.has_russia;
+  const extraFast=!!base.extra_fast;
+  const price=Math.round((devices*CUSTOM_PRICING.per_device + gb*CUSTOM_PRICING.per_gb + (hasRussia?CUSTOM_PRICING.russia:0) + (extraFast?CUSTOM_PRICING.extra_fast:0))*100)/100;
+  return {
+    key:'custom',
+    name:'CUSTOM',
+    custom:true,
+    days:30,
+    devices,
+    gb,
+    has_russia:hasRussia,
+    extra_fast:extraFast,
+    price,
+    desc:`${gb} ГБ · ${devices} устройств · ${hasRussia?'Россия + Европа':'Европа'}${extraFast?' · EXTRA FAST':''}`,
+  };
+}
+
+function renderPlans(discount=0){
+  const grid=document.getElementById('plansGrid');
+  grid.innerHTML=PLANS_CACHE.map(p=>{
+    const price=discount?Math.round(p.price*(1-discount/100)*100)/100:p.price;
+    return `<div class="plan-card${p.popular?' popular':''}" onclick="onPlanClick('${p.key}')">
+      <div class="plan-name">${p.name}</div>
+      <div class="plan-price">${p.custom?'от '+formatPriceRub(buildCustomPlanState().price):formatPriceRub(price)}<span>руб/мес</span></div>
+      <div class="plan-desc">${p.desc}</div>
+      <div class="plan-feature"><span class="on">+</span> ${p.custom?'1-20 устройств':`${p.devices} устройств${p.devices>1?'а':''}`}</div>
+      <div class="plan-feature"><span class="on">+</span> ${p.custom?'10+ ГБ':(p.gb?p.gb+' ГБ':'Безлимит')}</div>
+      <div class="plan-feature"><span class="on">+</span> Серверы: ${p.custom?'Европа / Россия опционально':getPlanRoutesLabel(p)}</div>
+      ${p.extra_fast?'<div class="plan-feature"><span class="on">+</span> EXTRA FAST</div>':''}
+      <button class="plan-select-btn">${p.custom?'СОБРАТЬ':'ВЫБРАТЬ'}</button>
+    </div>`;
+  }).join('');
+}
+
+function onPlanClick(key){
+  const basePlan=PLANS_CACHE.find(p=>p.key===key);
+  const plan=basePlan?.custom?buildCustomPlanState():basePlan;
+  STATE.selectedPlan=plan;
+  if(!STATE.token){showSection('auth');toast('Войдите для оформления','info');return;}
+  if(STATE.user?.needsProfileCompletion){showSection('cabinet');toast('Сначала завершите регистрацию','err');return;}
+  if(plan?.custom){STATE.customPlan=buildCustomPlanState();openCustomPlanModal();return;}
+  openPlanModal(plan);
+}
+
+function openPlanModal(plan){
+  const disc=STATE.user?.discount||0;
+  const price=applyUserDiscount(plan.price);
+  const bal=(STATE.user?.balance||0).toFixed(2);
+  const enough=parseFloat(bal)>=price;
+  document.getElementById('planModalContent').innerHTML=`
+    <h3 style="font-family:var(--font-head);letter-spacing:3px;color:#fff;margin-bottom:1rem">${plan.name}</h3>
+    <div class="term" style="margin-bottom:1.2rem">
+      <div class="term-line">Тариф: ${plan.name}</div>
+      <div class="term-line">Стоимость: <span style="color:var(--g)">${formatPriceRub(price)} руб/мес</span>${disc?` <span style="color:var(--y)">(скидка ${disc}%)</span>`:''}</div>
+      <div class="term-line">Трафик: ${plan.gb?plan.gb+' ГБ':'Безлимит'}</div>
+      <div class="term-line">Устройств: ${plan.devices}</div>
+      <div class="term-line">Маршруты: <span style="color:var(--g)">${getPlanRoutesLabel(plan)}</span></div>
+      ${plan.extra_fast?'<div class="term-line">Скорость: <span style="color:var(--c)">EXTRA FAST</span></div>':''}
+      <div class="term-line">Ваш баланс: <span style="${enough?'color:var(--g)':'color:var(--r)'}">${bal} руб</span></div>
+      ${!enough?`<div class="term-line" style="color:var(--r)">Не хватает: ${(price-parseFloat(bal)).toFixed(2)} руб</div>`:''}
+    </div>
+    ${enough
+      ?`<button class="btn btn-primary btn-full" onclick="buyPlanBalance('${plan.key}')">КУПИТЬ ЗА ${formatPriceRub(price)} РУБ</button>`
+      :`<button class="btn btn-secondary btn-full" onclick="buyPlanSbp('${plan.key}')">ОПЛАТИТЬ СБП (${formatPriceRub(price)} РУБ)</button>`}
+    <button class="btn btn-sm btn-full" style="margin-top:.5rem;background:transparent;border:1px solid var(--border);color:rgba(255,255,255,.3)" onclick="closeModal('planModal')">ОТМЕНА</button>
+  `;
+  openModal('planModal');
+}
+
+function updateCustomPlan(partial={}){
+  STATE.customPlan=buildCustomPlanState({...STATE.customPlan,...partial});
+  if(document.getElementById('planModal').classList.contains('open')) openCustomPlanModal();
+}
+
+function openCustomPlanModal(){
+  STATE.customPlan=buildCustomPlanState(STATE.customPlan||{});
+  const plan=STATE.customPlan;
+  const disc=STATE.user?.discount||0;
+  const price=applyUserDiscount(plan.price);
+  const bal=(STATE.user?.balance||0).toFixed(2);
+  const enough=parseFloat(bal)>=price;
+  document.getElementById('planModalContent').innerHTML=`
+    <h3 style="font-family:var(--font-head);letter-spacing:3px;color:#fff;margin-bottom:1rem">CUSTOM</h3>
+    <div class="field">
+      <label>УСТРОЙСТВА</label>
+      <input type="range" min="1" max="20" step="1" value="${plan.devices}" oninput="updateCustomPlan({devices:this.value})">
+      <small class="mono">${plan.devices} шт. · ${formatPriceRub(plan.devices*CUSTOM_PRICING.per_device)} руб</small>
+    </div>
+    <div class="field">
+      <label>ТРАФИК (ГБ)</label>
+      <input type="range" min="${CUSTOM_PRICING.min_gb}" max="500" step="10" value="${plan.gb}" oninput="updateCustomPlan({gb:this.value})">
+      <small class="mono">${plan.gb} ГБ · ${formatPriceRub(plan.gb*CUSTOM_PRICING.per_gb)} руб</small>
+    </div>
+    <div class="field">
+      <label><input type="checkbox" ${plan.has_russia?'checked':''} onchange="updateCustomPlan({has_russia:this.checked})"> Россия (+${CUSTOM_PRICING.russia} руб)</label>
+    </div>
+    <div class="field">
+      <label><input type="checkbox" ${plan.extra_fast?'checked':''} onchange="updateCustomPlan({extra_fast:this.checked})"> EXTRA FAST (+${CUSTOM_PRICING.extra_fast} руб)</label>
+    </div>
+    <div class="term" style="margin-bottom:1.2rem">
+      <div class="term-line">Стоимость: <span style="color:var(--g)">${formatPriceRub(price)} руб/мес</span>${disc?` <span style="color:var(--y)">(скидка ${disc}%)</span>`:''}</div>
+      <div class="term-line">Маршруты: <span style="color:var(--g)">${getPlanRoutesLabel(plan)}</span></div>
+      <div class="term-line">Ваш баланс: <span style="${enough?'color:var(--g)':'color:var(--r)'}">${bal} руб</span></div>
+      ${!enough?`<div class="term-line" style="color:var(--r)">Не хватает: ${(price-parseFloat(bal)).toFixed(2)} руб</div>`:''}
+    </div>
+    ${enough
+      ?`<button class="btn btn-primary btn-full" onclick="buyCustomPlanBalance()">КУПИТЬ ЗА ${formatPriceRub(price)} РУБ</button>`
+      :`<button class="btn btn-secondary btn-full" onclick="buyCustomPlanSbp()">ОПЛАТИТЬ СБП (${formatPriceRub(price)} РУБ)</button>`}
+    <button class="btn btn-sm btn-full" style="margin-top:.5rem;background:transparent;border:1px solid var(--border);color:rgba(255,255,255,.3)" onclick="closeModal('planModal')">ОТМЕНА</button>
+  `;
+  openModal('planModal');
+}
+
+async function buyPlanBalance(key){
+  try{
+    const r=await api('POST','/api/payment/balance',{planKey:key});
+    toast('Тариф активирован!','ok');
+    closeModal('planModal');
+    STATE.selectedPlan=null;
+    await loadUser();
+    showPaymentSuccess(r.connect);
+  }catch(e){toast(e.message,'err')}
+}
+
+async function buyCustomPlanBalance(){
+  try{
+    const r=await api('POST','/api/payment/custom/balance',STATE.customPlan);
+    toast('Кастом тариф активирован!','ok');
+    closeModal('planModal');
+    STATE.selectedPlan=null;
+    await loadUser();
+    showPaymentSuccess(r.connect);
+  }catch(e){toast(e.message,'err')}
+}
+
+async function buyPlanSbp(key){
+  try{
+    const r=await api('POST','/api/payment/sbp',{planKey:key});
+    window.open(r.url,'_blank');
+    toast('Откроется страница оплаты СБП','info');
+    document.getElementById('planModalContent').innerHTML=`
+      <h3 style="font-family:var(--font-head);letter-spacing:3px;color:#fff;margin-bottom:1rem">ОЖИДАНИЕ ОПЛАТЫ</h3>
+      <div class="term">
+    <div class="term-line">Стоимость: <span style="color:var(--g)">${formatPriceRub(r.price)} руб</span></div>
+        <div class="term-line">Статус: <span style="color:var(--y)">Ожидаем подтверждение</span></div>
+        <div class="term-line">После оплаты экран обновится автоматически<span class="cursor"></span></div>
+      </div>
+      <a class="btn btn-secondary btn-full" href="${r.url}" target="_blank" style="margin-top:1rem">ОТКРЫТЬ ОПЛАТУ</a>
+    `;
+    waitPaymentSuccess(r.transactionId);
+  }catch(e){toast(e.message,'err')}
+}
+
+async function buyCustomPlanSbp(){
+  try{
+    const r=await api('POST','/api/payment/custom/sbp',STATE.customPlan);
+    window.open(r.url,'_blank');
+    toast('Откроется страница оплаты СБП','info');
+    document.getElementById('planModalContent').innerHTML=`
+      <h3 style="font-family:var(--font-head);letter-spacing:3px;color:#fff;margin-bottom:1rem">ОЖИДАНИЕ ОПЛАТЫ</h3>
+      <div class="term">
+        <div class="term-line">Стоимость: <span style="color:var(--g)">${formatPriceRub(r.price)} руб</span></div>
+        <div class="term-line">Статус: <span style="color:var(--y)">Ожидаем подтверждение</span></div>
+        <div class="term-line">После оплаты экран обновится автоматически<span class="cursor"></span></div>
+      </div>
+      <a class="btn btn-secondary btn-full" href="${r.url}" target="_blank" style="margin-top:1rem">ОТКРЫТЬ ОПЛАТУ</a>
+    `;
+    waitPaymentSuccess(r.transactionId);
+  }catch(e){toast(e.message,'err')}
+}
+
+function showPaymentSuccess(connect){
+  closeModal('planModal');
+  const link=document.getElementById('paymentHappLink');
+  if(connect?.happLink) link.href=connect.happLink;
+  document.getElementById('paymentSuccessInfo').innerHTML=`
+    <div class="term-line">Статус: <span style="color:var(--g)">Оплата прошла успешно</span></div>
+    <div class="term-line">Подписка активирована</div>
+    <div class="term-line">Нажмите кнопку ниже, чтобы добавить подписку в HAPP</div>
+  `;
+  showSection('payment-success');
+}
+
+function waitPaymentSuccess(transactionId){
+  clearInterval(STATE.paymentPollInterval);
+  STATE.paymentPollInterval=setInterval(async()=>{
+    try{
+      const r=await api('GET','/api/payment/status/'+transactionId);
+      if(r.status==='confirmed'){
+        clearInterval(STATE.paymentPollInterval);
+        STATE.selectedPlan=null;
+        await loadUser();
+        showPaymentSuccess(r.connect);
+      }
+    }catch(e){}
+  },2500);
+  setTimeout(()=>clearInterval(STATE.paymentPollInterval),15*60*1000);
+}
+
+let selectedDevice=null,iosRegion=null;
+
+function selectDevice(type){
+  selectedDevice=type;
+  document.querySelectorAll('.device-card').forEach(c=>c.classList.remove('selected'));
+  event.currentTarget.classList.add('selected');
+  document.getElementById('iosRegion').classList.toggle('show',type==='ios');
+  const links={
+    android:'https://play.google.com/store/apps/details?id=com.happproxy',
+    windows:'https://github.com/Happ-proxy/happ-desktop/releases/latest/download/setup-Happ.x64.exe',
+    mac:'https://github.com/Happ-proxy/happ-desktop/releases/latest/download/Happ.macOS.universal.dmg',
+  };
+  const row=document.getElementById('downloadRow'),btn=document.getElementById('downloadBtn');
+  if(type!=='ios'){
+    row.style.display='block';btn.href=links[type];
+    btn.textContent='СКАЧАТЬ HAPP для '+{android:'Android',windows:'Windows',mac:'macOS'}[type];
+  } else {row.style.display='none';}
+}
+
+function selectIosRegion(r){
+  iosRegion=r;
+  document.querySelectorAll('.region-btn').forEach(b=>b.classList.remove('sel'));
+  event.currentTarget.classList.add('sel');
+  const url=r==='ru'
+    ?'https://apps.apple.com/ru/app/happ-proxy-utility-plus/id6746188973'
+    :'https://apps.apple.com/us/app/happ-proxy-utility/id6504287215';
+  const row=document.getElementById('downloadRow'),btn=document.getElementById('downloadBtn');
+  row.style.display='block';btn.href=url;
+  btn.textContent='СКАЧАТЬ HAPP '+(r==='ru'?'(App Store РФ)':'(App Store Global)');
+}
+
+async function addDevice(){
+  const name=document.getElementById('devNameInput').value.trim();
+  if(!name)return toast('Введите название','err');
+  if(!STATE.token){showSection('auth');return;}
+  try{
+    await api('POST','/api/devices',{name});
+    toast('Устройство добавлено!','ok');
+    document.getElementById('devNameInput').value='';
+    await loadConnect();
+  }catch(e){toast(e.message,'err')}
+}
+
+async function loadSetup(){
+  const ua=navigator.userAgent;
+  if(/iPhone|iPad|iPod/i.test(ua))setTimeout(()=>selectDevice('ios'),100);
+  else if(/Android/i.test(ua))setTimeout(()=>selectDevice('android'),100);
+  else if(/Windows/i.test(ua))setTimeout(()=>selectDevice('windows'),100);
+  else if(/Mac/i.test(ua))setTimeout(()=>selectDevice('mac'),100);
+  await loadConnect();
+}
+
+async function loadConnect(){
+  const card=document.getElementById('connectCard'),noSub=document.getElementById('noSubMsg');
+  try{
+    const r=await api('GET','/api/connect');
+    card.style.display='block';noSub.style.display='none';
+    document.getElementById('subUrlDisplay').textContent=r.subUrl;
+    document.getElementById('happDeepLink').href=r.happLink;
+  }catch(e){
+    card.style.display='none';noSub.style.display='block';
+  }
+}
+
+function copySubUrl(){
+  const url=document.getElementById('subUrlDisplay').textContent;
+  navigator.clipboard.writeText(url).then(()=>toast('Ссылка скопирована!','ok')).catch(()=>{
+    const el=document.createElement('textarea');el.value=url;document.body.appendChild(el);
+    el.select();document.execCommand('copy');el.remove();toast('Скопировано','ok');
+  });
+}
+
+function openTopUpModal(amount=300){
+  document.getElementById('topUpModalContent').innerHTML=`
+    <h3 style="font:900 24px/1 var(--font);margin-bottom:10px;color:#000">Пополнить баланс</h3>
+    <p style="font:800 14px/1.35 var(--font);color:rgba(0,0,0,.58);margin-bottom:14px">Выберите сумму или введите свою. После оплаты деньги появятся на балансе кабинета.</p>
+    <div class="topup-presets">
+      <button class="topup-preset" onclick="setTopUpAmount(100)">100 руб</button>
+      <button class="topup-preset" onclick="setTopUpAmount(300)">300 руб</button>
+      <button class="topup-preset" onclick="setTopUpAmount(500)">500 руб</button>
+    </div>
+    <input class="topup-input" id="topUpAmount" type="number" min="10" step="10" value="${amount}" placeholder="Сумма">
+    <button class="btn btn-primary btn-full mt2" onclick="startTopUpSbp()">Оплатить СБП</button>
+    <button class="btn btn-secondary btn-full mt1" onclick="closeModal('topUpModal')">Отмена</button>
+  `;
+  openModal('topUpModal');
+}
+function setTopUpAmount(amount){
+  const input=document.getElementById('topUpAmount');
+  if(input)input.value=amount;
+}
+async function startTopUpSbp(){
+  const amount=Math.round(Number(document.getElementById('topUpAmount')?.value||0)*100)/100;
+  if(!amount||amount<10)return toast('Минимальная сумма 10 руб','err');
+  try{
+    const r=await api('POST','/api/payment/topup/sbp',{amount});
+    const url=r.paymentUrl||r.payment_url||r.url||r.link;
+    if(url)window.location.href=url;
+    else if(r.transactionId){toast('Счет создан. Ожидаем оплату','ok');waitPaymentSuccess(r.transactionId);}
+    else toast('Счет создан','ok');
+    closeModal('topUpModal');
+  }catch(e){
+    toast('Пополнение баланса пока не подключено на сервере. Можно оплатить тариф напрямую.','err');
+  }
+}
+
+async function loadUser(){
+  try{
+    STATE.user=await api('GET','/api/auth/me');
+    syncRequiredProfileModal();
+    return STATE.user;
+  }catch(e){
+    if(e.message==='Unauthorized'){doLogout();}
+    else{closeModal('requiredProfileModal');}
+    return null;
+  }
+}
+
+async function loadCabinet(){
+  const u=await loadUser();
+  if(!u)return;
+  const s=u.sub;
+  const needsProfile=!!u.needsProfileCompletion;
+
+  const balance=(u.balance||0).toFixed(2);
+  document.getElementById('cabBalanceBig').textContent=`${balance} руб`;
+  document.getElementById('cabWalletMeta').textContent=u.discount
+    ?`Скидка ${u.discount}% активна`
+    :(s?`Тариф ${s.planName} · осталось ${daysLeft(s.expiresAt)} дн.`:'Баланс можно использовать для покупки тарифа');
+
+  document.getElementById('cabQuick').innerHTML=`
+    <div class="cab-kpi"><div class="cab-kpi-label">Подписка</div><div class="cab-kpi-value">${s?s.planName:'Нет'}</div><div class="cab-kpi-note">${s?`до ${fmtDate(s.expiresAt)}`:'Выберите тариф'}</div></div>
+    <div class="cab-kpi"><div class="cab-kpi-label">Трафик</div><div class="cab-kpi-value">${s?(s.gbLimit?`${(s.gbUsed||0).toFixed(1)} / ${s.gbLimit} ГБ`:`${(s.gbUsed||0).toFixed(1)} ГБ`):'—'}</div><div class="cab-kpi-note">${s?.gbLimit?'лимит на месяц':'безлимит или нет подписки'}</div></div>
+    <div class="cab-kpi"><div class="cab-kpi-label">Устройства</div><div class="cab-kpi-value">${u.devices?.length||0}${s?` / ${s.devicesLimit}`:''}</div><div class="cab-kpi-note">активные подключения</div></div>
+  `;
+
+  document.getElementById('profileStats').innerHTML=`
+    <div class="stat-row"><span class="stat-label">TG ID</span><span class="stat-val">${u.telegramId}</span></div>
+    <div class="stat-row"><span class="stat-label">Профиль</span><span class="stat-val">${u.displayName||u.name||u.username||'—'}</span></div>
+    <div class="stat-row"><span class="stat-label">Email</span><span class="stat-val">${u.email||'—'}</span></div>
+    <div class="stat-row"><span class="stat-label">Авторизация</span><span class="stat-val">${u.hasPassword?'Telegram + пароль':'Telegram OAuth'}</span></div>
+    <div class="stat-row"><span class="stat-label">Баланс</span><span class="stat-val">${(u.balance||0).toFixed(2)} руб</span></div>
+    ${s?`
+    <hr class="dim">
+    <div class="stat-row"><span class="stat-label">Тариф</span><span class="stat-val">${s.planName}</span></div>
+    <div class="stat-row"><span class="stat-label">Истекает</span><span class="stat-val ${daysLeft(s.expiresAt)<3?'bad':daysLeft(s.expiresAt)<7?'warn':''}">${fmtDate(s.expiresAt)} (${daysLeft(s.expiresAt)} дн.)</span></div>
+    ${s.gbLimit?`
+    <div class="stat-row"><span class="stat-label">Трафик</span><span class="stat-val">${(s.gbUsed||0).toFixed(1)} / ${s.gbLimit} ГБ</span></div>
+    <div class="sub-bar"><div class="sub-bar-fill" style="width:${Math.min(100,((s.gbUsed||0)/s.gbLimit*100).toFixed(1))}%"></div></div>
+    `:`<div class="stat-row"><span class="stat-label">Трафик</span><span class="stat-val">${(s.gbUsed||0).toFixed(1)} ГБ / Безлимит</span></div>`}
+    <div class="stat-row"><span class="stat-label">Маршруты</span><span class="stat-val">${s.hasRussia?'Россия + Европа':'Европа'}</span></div>
+    ${s.hasExtraFast?'<div class="stat-row"><span class="stat-label">EXTRA FAST</span><span class="stat-val" style="color:var(--c)">Включён</span></div>':''}
+    `:s?'':`<div class="stat-row"><span class="stat-label" style="color:var(--y)">Подписка не активна</span></div>`}
+  `;
+
+  if(needsProfile){
+    document.getElementById('profileStats').innerHTML+=`
+      <div class="profile-complete">
+        <h4>ЗАВЕРШИТЕ РЕГИСТРАЦИЮ</h4>
+        <p style="font-size:.72rem;color:var(--y);margin-bottom:.8rem">Сайт открыл обязательное окно. Заполните недостающие данные аккаунта, чтобы продолжить.</p>
+        <button class="btn btn-primary btn-sm" onclick="showRequiredProfileModal()">ЗАПОЛНИТЬ СЕЙЧАС</button>
+      </div>
+    `;
+  }
+
+  const cs=document.getElementById('connectSection');
+  if(needsProfile){
+    cs.innerHTML=`<p style="color:var(--y);font-size:.82rem;margin-bottom:.8rem">Сначала завершите регистрацию: укажите email и пароль для web-входа.</p>`;
+  } else if(s){
+    try{
+      const conn=await api('GET','/api/connect');
+      cs.innerHTML=`
+        <a href="${conn.happLink}" class="happ-link-btn">ОТКРЫТЬ В HAPP</a>
+        <div style="font-family:var(--font-mono);font-size:.6rem;color:rgba(0,255,65,.3);word-break:break-all;margin:.4rem 0">${conn.subUrl}</div>
+        <button class="btn btn-secondary btn-sm" onclick="navigator.clipboard.writeText('${conn.subUrl}').then(()=>toast('Скопировано','ok'))">КОПИРОВАТЬ</button>
+        <button class="btn btn-secondary btn-sm" onclick="showSection('setup')" style="margin-left:.4rem">ИНСТРУКЦИЯ</button>
+      `;
+    }catch(e){cs.innerHTML='<p style="color:var(--y);font-size:.8rem">'+e.message+'</p>';}
+  } else {
+    cs.innerHTML=`<p style="color:rgba(255,255,255,.3);font-size:.8rem;margin-bottom:.8rem">Нет активной подписки</p>
+      <button class="btn btn-primary btn-sm" onclick="showSection('plans')">ВЫБРАТЬ ТАРИФ</button>`;
+  }
+
+  const bps=document.getElementById('buyPlanSection');
+  bps.innerHTML=needsProfile
+    ?`<p style="color:var(--y);font-size:.8rem">Покупка тарифа будет доступна после завершения регистрации.</p>`
+    :PLANS_CACHE.map(p=>`
+      <button onclick="onPlanClick('${p.key}')" style="display:flex;justify-content:space-between;align-items:center;width:100%;background:rgba(0,255,65,.03);border:1px solid var(--border);padding:.6rem .8rem;margin-bottom:.4rem;color:var(--g);font-family:var(--font-mono);font-size:.7rem;cursor:pointer;transition:all .2s" onmouseover="this.style.borderColor='var(--g)'" onmouseout="this.style.borderColor='var(--border)'">
+        <span>${p.name}</span><span>${p.custom?'от '+formatPriceRub(buildCustomPlanState().price):formatPriceRub(p.price)} руб/мес</span>
+      </button>
+    `).join('');
+
+  renderDevicesList(u);
+  await renderTickets();
+  switchCabTab(needsProfile?'profile':(s?'connect':'profile'));
+  syncRequiredProfileModal();
+}
+
+function renderDevicesList(u){
+  const s=u.sub;
+  const dl=document.getElementById('devicesList');
+  const ar=document.getElementById('addDevRow');
+  if(u.needsProfileCompletion){
+    dl.innerHTML='<p style="color:var(--y);font-size:.8rem">Сначала завершите регистрацию.</p>';
+    ar.style.display='none';
+    return;
+  }
+  if(!s){dl.innerHTML='<p style="color:rgba(255,255,255,.3);font-size:.8rem">Нет активной подписки</p>';ar.style.display='none';return;}
+  ar.style.display='flex';
+  dl.innerHTML=`<p style="font-family:var(--font-mono);font-size:.65rem;color:rgba(0,255,65,.4);margin-bottom:.8rem">АКТИВНЫХ: ${u.devices.length} / ${s.devicesLimit}</p>`;
+  if(!u.devices.length){dl.innerHTML+='<p style="color:rgba(255,255,255,.3);font-size:.8rem">Нет устройств</p>';return;}
+  dl.innerHTML+=u.devices.map(d=>`
+    <div class="dev-item">
+      <div><div class="dev-name">${d.name}</div><div class="dev-srv">${d.server} ${d.location?'· '+d.location:''}</div></div>
+      <button class="dev-del" onclick="delDevice(${d.id})">X</button>
+    </div>
+  `).join('');
+}
+
+async function addDevCabinet(){
+  const name=document.getElementById('newDevName').value.trim();
+  if(!name)return toast('Введите название','err');
+  try{
+    await api('POST','/api/devices',{name});
+    document.getElementById('newDevName').value='';
+    toast('Устройство добавлено','ok');
+    await loadCabinet();
+  }catch(e){toast(e.message,'err')}
+}
+
+async function delDevice(id){
+  if(!confirm('Удалить устройство?'))return;
+  try{await api('DELETE','/api/devices/'+id);toast('Удалено','info');await loadCabinet();}
+  catch(e){toast(e.message,'err')}
+}
+
+async function renderTickets(){
+  const list=document.getElementById('ticketsList');
+  try{
+    const tickets=await api('GET','/api/tickets');
+    if(!tickets.length){list.innerHTML='<p style="color:rgba(255,255,255,.3);font-size:.8rem;margin-bottom:.8rem">Нет обращений</p>';return;}
+    list.innerHTML=tickets.map(t=>`
+      <div class="ticket-item" onclick="openTicket(${t.id})">
+        <div class="tst">
+          <span style="font-family:var(--font-mono);font-size:.65rem;color:rgba(255,255,255,.4)">#${t.id}</span>
+          <span class="ticket-status ${t.status}">${t.status==='open'?'ОТКРЫТ':'ЗАКРЫТ'}</span>
+        </div>
+        <div class="ticket-subj">${t.subject||t.id}</div>
+        ${t.messages?.length?`<div class="ticket-msg ${t.messages.at(-1).is_admin?'from-admin':'from-user'}"><div class="who">${t.messages.at(-1).is_admin?'Поддержка':'Вы'}</div>${t.messages.at(-1).message||''}</div>`:''}
+      </div>
+    `).join('');
+  }catch(e){list.innerHTML='<p style="color:var(--r);font-size:.8rem">'+e.message+'</p>';}
+}
+
+async function createTicket(){
+  const msg=document.getElementById('newTicketText').value.trim();
+  if(!msg||msg.length<5)return toast('Минимум 5 символов','err');
+  try{
+    await api('POST','/api/tickets',{message:msg});
+    document.getElementById('newTicketText').value='';
+    toast('Тикет создан','ok');
+    await renderTickets();
+  }catch(e){toast(e.message,'err')}
+}
+
+async function openTicket(id){
+  try{
+    const tickets=await api('GET','/api/tickets');
+    const t=tickets.find(x=>x.id===id);
+    if(!t)return;
+    const msgs=t.messages||[];
+    document.getElementById('ticketModalContent').innerHTML=`
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+        <h3 style="font-family:var(--font-head);font-size:.85rem;letter-spacing:3px;color:#fff">ТИКЕТ #${t.id}</h3>
+        <span class="ticket-status ${t.status}">${t.status==='open'?'ОТКРЫТ':'ЗАКРЫТ'}</span>
+      </div>
+      <div style="max-height:350px;overflow-y:auto;margin-bottom:1rem">
+        ${msgs.map(m=>`
+          <div class="ticket-msg ${m.is_admin?'from-admin':'from-user'}" style="margin-bottom:.5rem">
+            <div class="who">${m.is_admin?'Поддержка':'Вы'} · ${new Date(m.created_at).toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</div>
+            ${m.message||''}
+          </div>
+        `).join('')}
+      </div>
+      ${t.status==='open'?`
+        <div style="display:flex;gap:.5rem">
+          <input id="replyInput" type="text" placeholder="Ваш ответ..." style="flex:1;background:rgba(0,255,65,.04);border:1px solid var(--border);color:var(--g);font-family:var(--font-mono);font-size:.75rem;padding:.6rem;outline:none">
+          <button class="btn btn-primary btn-sm" onclick="replyTicket(${t.id})">ОТПРАВИТЬ</button>
+        </div>
+      `:''}
+    `;
+    openModal('ticketModal');
+  }catch(e){toast(e.message,'err')}
+}
+
+async function replyTicket(id){
+  const msg=document.getElementById('replyInput').value.trim();
+  if(!msg)return toast('Введите сообщение','err');
+  try{
+    await api('POST','/api/tickets/'+id+'/reply',{message:msg});
+    toast('Отправлено','ok');
+    closeModal('ticketModal');
+    await renderTickets();
+  }catch(e){toast(e.message,'err')}
+}
+
+function escapeHtml(value){
+  return String(value||'')
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;')
+    .replace(/'/g,'&#39;');
+}
+
+function requiredProfileFieldLabel(field){
+  return ({
+    email:'Email',
+    password:'Пароль',
+    displayName:'Имя',
+    phone:'Телефон'
+  })[field]||field;
+}
+
+function renderRequiredProfileModal(){
+  const u=STATE.user||{};
+  const missing=Array.isArray(u.missingProfileFields)&&u.missingProfileFields.length
+    ?u.missingProfileFields
+    :[
+      ...(!u.hasEmail?['email']:[]),
+      ...(!u.hasPassword?['password']:[])
+    ];
+  const needsPassword=missing.includes('password') || !u.hasPassword;
+  document.getElementById('requiredProfileModalContent').innerHTML=`
+    <h3>ЗАВЕРШИТЕ РЕГИСТРАЦИЮ</h3>
+    <div class="required-profile-hint">В аккаунте не хватает обязательных данных. Пока они не заполнены, доступ к сайту и функциям кабинета ограничен.</div>
+    <div class="required-profile-list">
+      ${missing.map(field=>`<div>ТРЕБУЕТСЯ: ${requiredProfileFieldLabel(field).toUpperCase()}</div>`).join('')}
+    </div>
+    <div class="field">
+      <label>ИМЯ</label>
+      <input id="requiredProfileDisplayName" type="text" placeholder="Ваше имя" value="${escapeHtml(u.displayName||u.name||'')}">
+    </div>
+    <div class="field">
+      <label>EMAIL</label>
+      <input id="requiredProfileEmail" type="email" placeholder="name@email.com" value="${escapeHtml(u.email||'')}">
+    </div>
+    <div class="field">
+      <label>${u.hasPassword?'НОВЫЙ ПАРОЛЬ':'ПАРОЛЬ ДЛЯ WEB-ВХОДА'}</label>
+      <input id="requiredProfilePassword" type="password" placeholder="${u.hasPassword?'Оставьте пустым, если не меняете':'Минимум 6 символов'}" onkeydown="if(event.key==='Enter')completeProfile()">
+    </div>
+    <button class="btn btn-primary btn-full" onclick="completeProfile()">${needsPassword?'СОХРАНИТЬ И ПРОДОЛЖИТЬ':'СОХРАНИТЬ'}</button>
+  `;
+}
+
+function showRequiredProfileModal(){
+  if(!STATE.user?.needsProfileCompletion)return;
+  renderRequiredProfileModal();
+  openModal('requiredProfileModal');
+}
+
+async function completeProfile(){
+  const displayName=(document.getElementById('requiredProfileDisplayName')?.value
+    ||document.getElementById('profileDisplayName')?.value||'').trim();
+  const email=(document.getElementById('requiredProfileEmail')?.value
+    ||document.getElementById('profileEmail')?.value||'').trim();
+  const password=document.getElementById('requiredProfilePassword')?.value
+    ||document.getElementById('profilePassword')?.value||'';
+  const missing=STATE.user?.missingProfileFields||[];
+  if(missing.includes('email') && !email)return toast('Укажите email','err');
+  if((missing.includes('password') || STATE.user?.needsProfileCompletion || !STATE.user?.hasPassword) && !password)return toast('Придумайте пароль','err');
+  try{
+    const r=await api('POST','/api/auth/complete-profile',{displayName,email,password});
+    if(r.token){
+      STATE.token=r.token;
+      localStorage.setItem('bvpn_token',r.token);
+    }
+    toast('Профиль обновлён','ok');
+    closeModal('requiredProfileModal');
+    await loadCabinet();
+  }catch(e){toast(e.message,'err')}
+}
+
+async function init(){
+  renderPlans();
+  if(STATE.token){
+    const u=await loadUser();
+    if(u){updateNavAuth(true);}
+    else{STATE.token=null;localStorage.removeItem('bvpn_token');}
+    syncRequiredProfileModal();
+  }
+  showSection(sectionFromPath(),{replace:true,instant:true});
+  setTimeout(()=>{
+    document.getElementById('loading').classList.add('hide');
+    setTimeout(()=>document.getElementById('loading').remove(),500);
+  },1200);
+}
+
+document.getElementById('menuToggle')?.addEventListener('click',toggleMobileMenu);
+document.addEventListener('click',e=>{if(!e.target.closest('nav'))closeMobileMenu();});
+window.addEventListener('popstate',()=>showSection(sectionFromPath(),{updateUrl:false,instant:true}));
+init();
+</script>
+<script>
+(function(){
+  const hero=document.getElementById('hero');
+  const heroStates=[
+    {theme:'light',heading:'С КОТОРЫМ ВСЕ',word:'ПРОСТО',desc:'Собственный, удобный клиент или <br>возможность использовать сторонние <br>клиенты (V2RayTun, HAPP, V2Box, и тд.) <br>Настройка в 2 клика',width:'430px',font:'72px',rotation:'0deg'},
+    {theme:'dark',heading:'С КОТОРЫМ ВСЕ',word:'ПРИВАТНО',desc:'Ваш траффик: <br>● Шифруются <br>● Не продается <br>● Не сохраняется и не просматривается',width:'520px',font:'64px',rotation:'7deg'},
+    {theme:'light',heading:'С КОТОРЫМ ТЫ',word:'ЭКОНОМИШЬ',desc:'Подписка от 25₽/Месяц. Пробный <br>период на 5 дней.',width:'560px',font:'58px',rotation:'-7deg'}
+  ];
+  let index=0,locked=false,touchY=0;
+  const heading=document.getElementById('heroHeadingLine'),word=document.getElementById('valueWord'),desc=document.getElementById('heroDescription'),pill=document.getElementById('valuePill'),dots=[...document.querySelectorAll('[data-hero-state]')];
+  function syncHeroLock(){document.body.classList.toggle('hero-lock',hero?.classList.contains('active'))}
+  const baseShowSection=window.showSection;
+  if(typeof baseShowSection==='function'){window.showSection=function(id){baseShowSection(id);syncHeroLock();}}
+  if(hero){hero.dataset.heroTheme='light';document.body.classList.add('hero-lock');}
+  function apply(next){if(!heading||locked||next===index)return;locked=true;index=(next+heroStates.length)%heroStates.length;const s=heroStates[index];word.style.opacity='0';desc.style.opacity='0';if(hero)hero.dataset.heroTheme=s.theme;setTimeout(()=>{heading.textContent=s.heading;word.textContent=s.word;desc.innerHTML=s.desc;pill.style.setProperty('--pill-width',s.width);pill.style.setProperty('--pill-font',s.font);pill.style.setProperty('--pill-rotation',s.rotation);dots.forEach((d,i)=>d.classList.toggle('active',i===index));word.style.opacity='1';desc.style.opacity='1'},180);setTimeout(()=>locked=false,840)}
+  dots.forEach(d=>d.addEventListener('click',()=>apply(Number(d.dataset.heroState))));
+  window.addEventListener('wheel',e=>{if(!document.getElementById('hero')?.classList.contains('active'))return;if(Math.abs(e.deltaY)<12)return;e.preventDefault();apply(index+(e.deltaY>0?1:-1))},{passive:false});
+  window.addEventListener('keydown',e=>{if(!document.getElementById('hero')?.classList.contains('active'))return;if(['ArrowDown','PageDown',' '].includes(e.key)){e.preventDefault();apply(index+1)}if(['ArrowUp','PageUp'].includes(e.key)){e.preventDefault();apply(index-1)}});
+  window.addEventListener('touchstart',e=>{touchY=e.touches[0].clientY},{passive:true});
+  window.addEventListener('touchmove',e=>{if(!document.getElementById('hero')?.classList.contains('active'))return;e.preventDefault();const diff=touchY-e.touches[0].clientY;if(Math.abs(diff)<42)return;apply(index+(diff>0?1:-1));touchY=e.touches[0].clientY},{passive:false});
+  syncHeroLock();
+})();
+</script>
+</body>
+</html>

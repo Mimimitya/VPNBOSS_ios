@@ -1,0 +1,35 @@
+name: VPNBoss
+options:
+  bundleIdPrefix: com.vpnboss
+  deploymentTarget:
+    iOS: "17.0"
+settings:
+  base:
+    MARKETING_VERSION: 1.0.0
+    CURRENT_PROJECT_VERSION: 1
+targets:
+  VPNBoss:
+    type: application
+    platform: iOS
+    sources:
+      - VPNBoss
+    resources:
+      - VPNBoss/Resources
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.vpnboss.client
+        INFOPLIST_FILE: VPNBoss/Resources/Info.plist
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        DEVELOPMENT_TEAM: ""
+    info:
+      path: VPNBoss/Resources/Info.plist
+      properties:
+        CFBundleDisplayName: VPNBOSS
+        CFBundleShortVersionString: "$(MARKETING_VERSION)"
+        CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
+        LSApplicationQueriesSchemes:
+          - happ
+          - tg
+          - telegram
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: false

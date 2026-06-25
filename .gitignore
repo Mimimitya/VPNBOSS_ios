@@ -1,0 +1,4 @@
+ops/vps-ssh.json
+ops/*.secret.json
+*.pem
+*.key
