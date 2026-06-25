@@ -3,60 +3,44 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>VPNBOSS</title>
+    <title>VPNBOSS Client</title>
+    <meta name="description" content="VPNBOSS client prototype." />
+    <link rel="icon" href="./assets/vpnboss-logo.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800;900&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800;900&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
-    <main class="page" data-theme="light">
-      <header class="topbar" aria-label="Главная навигация">
-        <a class="brand" href="#" aria-label="VPNBOSS">
-          <img src="./assets/vpnboss-logo.png" alt="VPNBOSS" />
-        </a>
-
-        <nav class="nav">
-          <a href="#">Главная</a>
-          <a href="#">Связь</a>
-        </nav>
-
-        <a class="auth-link" href="#">Вход | Регистрация</a>
+    <main class="app" id="app">
+      <header class="topbar" aria-label="VPNBOSS">
+        <img class="brand" src="./assets/vpnboss-logo.png" alt="VPNBOSS" />
+        <div class="lang" aria-label="Language">
+          <button class="lang-btn" data-lang="en" type="button">EN</button>
+          <button class="lang-btn" data-lang="ru" type="button">RU</button>
+          <button class="lang-btn" data-lang="es" type="button">ES</button>
+        </div>
       </header>
 
-      <section class="hero" aria-live="polite">
-        <div class="hero-copy">
-          <h1>
-            <span>ВПН</span>
-            <span id="headingLine">С КОТОРЫМ ВСЕ</span>
-          </h1>
+      <section class="phone-stage" aria-label="VPNBOSS app preview">
+        <button class="nav-arrow" id="prevScreen" type="button" aria-label="Previous screen">‹</button>
 
-          <div class="value-wrap" aria-hidden="true">
-            <div class="value-pill" id="valuePill">
-              <span id="valueWord">ПРОСТО</span>
-            </div>
-          </div>
-
-          <div class="description" id="description">
-            Собственный, удобный клиент или<br />
-            возможность использовать сторонние<br />
-            клиенты (V2RayTun, HAPP, V2Box, и тд.)<br />
-            Настройка в 2 клика
-          </div>
-
-          <a class="cta" id="cta" href="#">Подключить сегодня</a>
+        <div class="phone-shell">
+          <div class="phone-screen" id="phoneScreen"></div>
         </div>
 
-        <div class="progress" aria-label="Состояние экрана">
-          <button class="dot active" data-index="0" aria-label="ПРОСТО"></button>
-          <button class="dot" data-index="1" aria-label="ПРИВАТНО"></button>
-          <button class="dot" data-index="2" aria-label="ЭКОНОМИШЬ"></button>
-        </div>
+        <button class="nav-arrow" id="nextScreen" type="button" aria-label="Next screen">›</button>
       </section>
+
+      <section class="screen-strip" id="screenStrip" aria-label="Screens"></section>
+
+      <div class="dots" id="dots"></div>
     </main>
+
+    <div class="toast-stack" id="toastStack" aria-live="polite" aria-atomic="true"></div>
 
     <script src="./script.js"></script>
   </body>
