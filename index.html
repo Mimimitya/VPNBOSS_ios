@@ -3,44 +3,38 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>VPNBOSS Client</title>
-    <meta name="description" content="VPNBOSS client prototype." />
+    <title>VPNBOSS</title>
+    <meta name="description" content="VPNBOSS client interface prototype." />
     <link rel="icon" href="./assets/vpnboss-logo.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800;900&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800;900&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
-    <main class="app" id="app">
-      <header class="topbar" aria-label="VPNBOSS">
-        <img class="brand" src="./assets/vpnboss-logo.png" alt="VPNBOSS" />
-        <div class="lang" aria-label="Language">
-          <button class="lang-btn" data-lang="en" type="button">EN</button>
+    <main class="prototype" id="app">
+      <header class="prototype-top">
+        <img class="brand-logo" src="./assets/vpnboss-logo.png" alt="VPNBOSS" />
+        <div class="lang-switch" aria-label="Language">
           <button class="lang-btn" data-lang="ru" type="button">RU</button>
+          <button class="lang-btn" data-lang="en" type="button">EN</button>
           <button class="lang-btn" data-lang="es" type="button">ES</button>
         </div>
       </header>
 
-      <section class="phone-stage" aria-label="VPNBOSS app preview">
-        <button class="nav-arrow" id="prevScreen" type="button" aria-label="Previous screen">‹</button>
+      <section class="screen-board" id="screenBoard" aria-label="VPNBOSS screens"></section>
 
-        <div class="phone-shell">
-          <div class="phone-screen" id="phoneScreen"></div>
-        </div>
-
-        <button class="nav-arrow" id="nextScreen" type="button" aria-label="Next screen">›</button>
+      <section class="active-preview" aria-label="Active screen">
+        <button class="round-nav" data-prev type="button" aria-label="Previous">‹</button>
+        <div class="active-phone" id="activePhone"></div>
+        <button class="round-nav" data-next type="button" aria-label="Next">›</button>
       </section>
 
-      <section class="screen-strip" id="screenStrip" aria-label="Screens"></section>
-
-      <div class="dots" id="dots"></div>
+      <div class="toast-stack" id="toastStack" aria-live="polite" aria-atomic="true"></div>
     </main>
-
-    <div class="toast-stack" id="toastStack" aria-live="polite" aria-atomic="true"></div>
 
     <script src="./script.js"></script>
   </body>

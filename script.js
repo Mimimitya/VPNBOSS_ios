@@ -1,351 +1,318 @@
 const API_BASE = new URLSearchParams(window.location.search).get("api") || "https://sekretnik1.vps.webdock.cloud";
 
 const STORAGE = {
-  token: "vpnboss_client_token",
-  lang: "vpnboss_client_lang",
-  screen: "vpnboss_client_screen",
-  access: "vpnboss_client_access",
+  lang: "vpnboss_lang",
+  token: "vpnboss_token",
+  active: "vpnboss_active_screen",
+  access: "vpnboss_access",
 };
 
-const I18N = {
-  en: {
-    welcomeTitle: "Welcome to VPNBOSS",
-    welcomeBody: "",
-    next: "Next",
-    telegramTitle: "Link Telegram before you start.",
-    telegramBody: "Open Telegram, confirm access, then return here.",
-    telegramButton: "Telegram",
-    trialTitle: "You received PRO access for 5 days.",
-    trialBody: "",
-    chooseTitle: "Choose the access activated for you.",
-    chooseBody: "Confirm the option already issued through Telegram or the website.",
-    confirm: "Confirm",
-    startPlan: "START",
-    proPlan: "PRO",
-    autoTitle: "Auto-connect",
-    autoBody: "Keep the client ready and connect when access is available.",
-    statusOn: "Enabled",
-    statusOff: "Disabled",
-    statusTitle: "Status",
-    menuTitle: "Menu",
-    activeAccess: "Active access",
-    connectionKey: "Connection key",
-    autoConnect: "Auto-connect",
-    copyButton: "Copy key",
-    openButton: "Open client",
-    copied: "Copied",
-    unavailable: "Not available yet",
-    linked: "Telegram linked",
-    waitingTelegram: "Waiting for Telegram",
-    error: "Error",
-  },
+const TEXT = {
   ru: {
-    welcomeTitle: "Добро пожаловать в VPNBOSS",
-    welcomeBody: "",
+    welcome: "Добро пожаловать в VPNBOSS",
+    telegramTitle: "Перед началом работы вам потребуется привязать свой Telegram",
+    telegramSmall: "Это безопасное подтверждение доступа. Вход и управление выполняются через Telegram или сайт.",
+    trial: "Поздравляем! Вы получили доступ к пробному периоду PRO на 5 дней",
+    choose: "Выберите подписку, которую вы уже получили через Telegram или сайт",
+    autoTitle: "Ваш аккаунт готов",
+    autoSmall: "Включите автоподключение, чтобы клиент запускал доступ автоматически.",
     next: "Далее",
-    telegramTitle: "Перед началом работы привяжи Telegram-аккаунт.",
-    telegramBody: "Открой Telegram, подтверди доступ и вернись обратно.",
-    telegramButton: "Telegram",
-    trialTitle: "Поздравляем! Вы получили PRO на 5 дней.",
-    trialBody: "",
-    chooseTitle: "Выберите доступ, активированный для аккаунта.",
-    chooseBody: "Подтвердите вариант, полученный через Telegram или сайт.",
     confirm: "Подтвердить",
-    startPlan: "СТАРТ",
-    proPlan: "PRO",
-    autoTitle: "Автоподключение",
-    autoBody: "Клиент будет готов подключиться, когда доступ активен.",
-    statusOn: "Включено",
-    statusOff: "Выключено",
-    statusTitle: "Статус",
-    menuTitle: "Меню",
-    activeAccess: "Активный доступ",
-    connectionKey: "Ключ подключения",
-    autoConnect: "Автоподключение",
-    copyButton: "Скопировать ключ",
-    openButton: "Открыть клиент",
-    copied: "Скопировано",
-    unavailable: "Пока недоступно",
-    linked: "Telegram привязан",
-    waitingTelegram: "Ждём Telegram",
+    auto: "Автоподключение",
+    status: "Статус",
+    on: "Включено",
+    off: "Выключено",
+    telegram: "Войти через Telegram",
+    start: "START",
+    pro: "PRO",
+    menu: "Меню",
+    subscription: "Подписка",
+    connection: "Подключение",
+    copied: "Ссылка скопирована",
+    unavailable: "Доступ пока не найден",
+    waiting: "Откройте Telegram и подтвердите доступ",
+    linked: "Telegram подтверждён",
+    open: "Открыть",
     error: "Ошибка",
   },
+  en: {
+    welcome: "Welcome to VPNBOSS",
+    telegramTitle: "Before you start, link your Telegram",
+    telegramSmall: "Access is confirmed through Telegram or the website.",
+    trial: "You received trial PRO access for 5 days",
+    choose: "Choose the subscription already issued through Telegram or the website",
+    autoTitle: "Your account is ready",
+    autoSmall: "Enable auto-connect so the client can start automatically.",
+    next: "Next",
+    confirm: "Confirm",
+    auto: "Auto-connect",
+    status: "Status",
+    on: "On",
+    off: "Off",
+    telegram: "Continue with Telegram",
+    start: "START",
+    pro: "PRO",
+    menu: "Menu",
+    subscription: "Subscription",
+    connection: "Connection",
+    copied: "Link copied",
+    unavailable: "Access not found yet",
+    waiting: "Open Telegram and confirm access",
+    linked: "Telegram confirmed",
+    open: "Open",
+    error: "Error",
+  },
   es: {
-    welcomeTitle: "Bienvenido a VPNBOSS",
-    welcomeBody: "",
+    welcome: "Bienvenido a VPNBOSS",
+    telegramTitle: "Antes de empezar, vincula Telegram",
+    telegramSmall: "El acceso se confirma por Telegram o el sitio web.",
+    trial: "Tienes acceso PRO de prueba por 5 días",
+    choose: "Elige la suscripción emitida por Telegram o el sitio web",
+    autoTitle: "Tu acceso está listo",
+    autoSmall: "Activa la conexión automática para iniciar el cliente.",
     next: "Siguiente",
-    telegramTitle: "Vincula tu Telegram antes de empezar.",
-    telegramBody: "Abre Telegram, confirma el acceso y vuelve aquí.",
-    telegramButton: "Telegram",
-    trialTitle: "Tienes PRO por 5 días.",
-    trialBody: "",
-    chooseTitle: "Elige el acceso activado para tu cuenta.",
-    chooseBody: "Confirma la opción emitida por Telegram o el sitio web.",
     confirm: "Confirmar",
-    startPlan: "START",
-    proPlan: "PRO",
-    autoTitle: "Autoconexión",
-    autoBody: "Mantén el cliente listo cuando el acceso esté activo.",
-    statusOn: "Activado",
-    statusOff: "Desactivado",
-    statusTitle: "Estado",
-    menuTitle: "Menú",
-    activeAccess: "Acceso activo",
-    connectionKey: "Clave de conexión",
-    autoConnect: "Autoconexión",
-    copyButton: "Copiar clave",
-    openButton: "Abrir cliente",
-    copied: "Copiado",
-    unavailable: "Aún no disponible",
-    linked: "Telegram vinculado",
-    waitingTelegram: "Esperando Telegram",
+    auto: "Autoconexión",
+    status: "Estado",
+    on: "Activado",
+    off: "Desactivado",
+    telegram: "Continuar con Telegram",
+    start: "START",
+    pro: "PRO",
+    menu: "Menú",
+    subscription: "Suscripción",
+    connection: "Conexión",
+    copied: "Enlace copiado",
+    unavailable: "Acceso aún no encontrado",
+    waiting: "Abre Telegram y confirma el acceso",
+    linked: "Telegram confirmado",
+    open: "Abrir",
     error: "Error",
   },
 };
 
 const state = {
+  lang: normalizeLang(localStorage.getItem(STORAGE.lang) || navigator.language),
   token: localStorage.getItem(STORAGE.token) || "",
-  lang: localStorage.getItem(STORAGE.lang) || normalizeLang(navigator.language),
-  screen: Number(localStorage.getItem(STORAGE.screen) || 0),
+  active: Number(localStorage.getItem(STORAGE.active) || 0),
   access: localStorage.getItem(STORAGE.access) || "pro",
-  user: null,
+  profile: null,
   connect: null,
   configs: [],
   telegramPoll: null,
 };
 
-const screens = [
-  { key: "welcome", kind: "welcome" },
-  { key: "telegram", kind: "telegram" },
-  { key: "trial", kind: "trial" },
-  { key: "choose", kind: "choose" },
-  { key: "auto", kind: "auto" },
-  { key: "status", kind: "status" },
-  { key: "menu", kind: "menu" },
-];
+const screenKeys = ["welcome", "telegram", "trial", "choose", "auto", "status", "menu"];
 
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
 
-function normalizeLang(lang) {
-  const value = String(lang || "en").slice(0, 2).toLowerCase();
-  return ["en", "ru", "es"].includes(value) ? value : "en";
+function normalizeLang(value) {
+  const lang = String(value || "ru").slice(0, 2).toLowerCase();
+  return ["ru", "en", "es"].includes(lang) ? lang : "ru";
 }
 
 function t(key) {
-  if (Object.prototype.hasOwnProperty.call(I18N[state.lang] || {}, key)) {
-    return I18N[state.lang][key];
-  }
-  if (Object.prototype.hasOwnProperty.call(I18N.en, key)) {
-    return I18N.en[key];
-  }
-  return key;
+  return TEXT[state.lang]?.[key] ?? TEXT.ru[key] ?? key;
+}
+
+function telegramSvg() {
+  return `
+    <svg class="telegram-icon" viewBox="0 0 24 24" aria-hidden="true">
+      <circle cx="12" cy="12" r="12" fill="#1d9bf0"></circle>
+      <path d="M18.9 6.7 16.8 17c-.16.72-.58.9-1.18.56l-3.25-2.4-1.57 1.52c-.17.17-.32.32-.66.32l.24-3.31 6.02-5.44c.26-.24-.06-.37-.4-.13l-7.44 4.69-3.2-1c-.7-.22-.72-.7.15-1.04l12.52-4.83c.58-.21 1.08.14.87.76Z" fill="#fff"></path>
+    </svg>
+  `;
 }
 
 function logo() {
   return `<img class="phone-logo" src="./assets/vpnboss-logo.png" alt="VPNBOSS" />`;
 }
 
-function head(label = "") {
+function topBar() {
   return `
-    <div class="phone-head">
+    <div class="phone-top">
       ${logo()}
-      <span>${label}</span>
-      <span class="mini-mark" aria-hidden="true"></span>
+      <span></span>
+      <span class="tiny-arrow">➜</span>
     </div>
   `;
 }
 
-function screenTemplate(content, options = {}) {
-  const grid = options.grid ? " screen-grid" : "";
-  return `<div class="screen-inner${grid}">${content}</div>`;
+function frame(content, key) {
+  return `
+    <article class="phone" data-screen="${key}" data-active="${screenKeys[state.active] === key}">
+      <div class="phone-inner">
+        ${content}
+      </div>
+    </article>
+  `;
 }
 
-function renderWelcome() {
-  return screenTemplate(`
-    ${head("")}
-    <div class="copy">
-      <h1 class="title">${t("welcomeTitle")}</h1>
-      ${t("welcomeBody") ? `<p class="body">${t("welcomeBody")}</p>` : ""}
+function welcomeScreen() {
+  return frame(`
+    ${topBar()}
+    <div class="screen-center">
+      <h1 class="headline large">${t("welcome")}</h1>
     </div>
-    <button class="pill ghost" data-action="next" type="button">${t("next")} →</button>
-  `);
+    <div class="screen-bottom">
+      <span class="next">${t("next")} →</span>
+    </div>
+  `, "welcome");
 }
 
-function renderTelegram() {
-  return screenTemplate(`
-    ${head("")}
-    <div class="copy">
-      <h1 class="title">${t("telegramTitle")}</h1>
-      <button class="telegram-card" data-action="telegram" type="button">
-        <span class="telegram-dot">›</span>
-        <span>${t("telegramButton")}</span>
+function telegramScreen() {
+  return frame(`
+    ${topBar()}
+    <div class="screen-center">
+      <h2 class="headline">${t("telegramTitle")}</h2>
+      <button class="black-pill" data-action="telegram" type="button">
+        ${telegramSvg()}
+        <span>${t("telegram")}</span>
       </button>
-      <p class="small">${t("telegramBody")}</p>
+      <p class="telegram-copy">${t("telegramSmall")}</p>
     </div>
-    <button class="pill ghost" data-action="next" type="button">${t("next")} →</button>
-  `);
+    <div class="screen-bottom">
+      <span class="next">${t("next")} →</span>
+    </div>
+  `, "telegram");
 }
 
-function renderTrial() {
-  return screenTemplate(`
-    ${head("")}
-    <div class="copy">
-      <h1 class="title">${t("trialTitle")}</h1>
-      ${t("trialBody") ? `<p class="body">${t("trialBody")}</p>` : ""}
+function trialScreen() {
+  return frame(`
+    ${topBar()}
+    <div class="screen-center">
+      <h2 class="headline">${t("trial")}</h2>
     </div>
-    <button class="pill ghost" data-action="next" type="button">${t("next")} →</button>
-  `);
+    <div class="screen-bottom">
+      <span class="next">${t("next")} →</span>
+    </div>
+  `, "trial");
 }
 
-function renderChoose() {
-  return screenTemplate(`
-    ${head(t("menuTitle"))}
-    <div class="copy">
-      <h1 class="title">${t("chooseTitle")}</h1>
-      <p class="small">${t("chooseBody")}</p>
+function chooseScreen() {
+  return frame(`
+    ${topBar()}
+    <div class="screen-center">
+      <p class="access-copy">${t("choose")}</p>
       <div class="access-list">
-        ${accessOption("start", t("startPlan"))}
-        ${accessOption("pro", t("proPlan"))}
+        ${accessRow("start", t("start"))}
+        ${accessRow("pro", t("pro"))}
       </div>
     </div>
-    <button class="pill" data-action="confirm" type="button">${t("confirm")}</button>
-  `);
+    <div class="screen-bottom">
+      <button class="black-pill" data-action="confirm" type="button">${t("confirm")}</button>
+    </div>
+  `, "choose");
 }
 
-function accessOption(key, label) {
+function accessRow(key, label) {
   const active = state.access === key ? " active" : "";
   return `
-    <button class="access-option${active}" data-access="${key}" type="button">
-      <span class="option-dot">✓</span>
+    <button class="access-row${active}" data-access="${key}" type="button">
+      <span class="coin">${key === "pro" ? "P" : "S"}</span>
       <span>${label}</span>
+      <span>✓</span>
     </button>
   `;
 }
 
-function renderAuto() {
-  return screenTemplate(`
-    ${head(t("autoTitle"))}
-    <div>
-      <div class="question">?</div>
-      <div class="copy" style="margin: 18px auto 0; text-align: center">
-        <h1 class="title">${t("autoTitle")}</h1>
-        <p class="small">${t("autoBody")}</p>
-      </div>
+function autoScreen() {
+  return frame(`
+    ${topBar()}
+    <div class="screen-center center-text">
+      <div class="question-circle">?</div>
+      <h2 class="headline">${t("autoTitle")}</h2>
+      <p class="caption">${t("autoSmall")}</p>
     </div>
-    <button class="pill" data-action="next" type="button">${t("autoConnect")}</button>
-  `);
+    <div class="screen-bottom">
+      <button class="black-pill" data-action="next" type="button">${t("auto")}</button>
+    </div>
+  `, "auto");
 }
 
-function renderStatus() {
-  const connected = Boolean(state.connect?.subUrl || state.configs.length);
-  return screenTemplate(`
-    ${head(t("statusTitle"))}
-    <div class="power-zone">
-      <button class="power-btn" data-action="copy" type="button" aria-label="${t("copyButton")}"></button>
-      <div class="status-text">${connected ? t("statusOn") : t("statusOff")}</div>
+function statusScreen() {
+  const active = hasConnection();
+  return frame(`
+    ${topBar()}
+    <div class="power-wrap">
+      <button class="power-button" data-action="copy" type="button" aria-label="${t("connection")}"></button>
+      <div class="status-label">${active ? t("on") : t("off")}</div>
     </div>
-    <button class="pill ghost" data-action="copy" type="button">${t("copyButton")}</button>
-  `, { grid: true });
+    <div class="screen-bottom center-text">
+      <button class="outline-pill" data-action="copy" type="button">${t("connection")}</button>
+    </div>
+  `, "status");
 }
 
-function renderMenu() {
-  const connected = Boolean(state.connect?.subUrl || state.configs.length);
-  return screenTemplate(`
-    ${head(t("menuTitle"))}
-    <div class="menu-sheet">
-      <div class="menu-items">
+function menuScreen() {
+  return frame(`
+    ${topBar()}
+    <div class="menu-arc">
+      <div class="menu-list">
         <button class="menu-item" data-action="telegram" type="button">
-          <span class="option-dot">›</span>
-          <span>${t("telegramButton")}</span>
+          <span class="menu-icon">${telegramSvg()}</span>
+          <span>Telegram</span>
         </button>
         <button class="menu-item" data-action="copy" type="button">
-          <span class="option-dot">✓</span>
-          <span>${connected ? t("connectionKey") : t("unavailable")}</span>
+          <span class="menu-icon">✓</span>
+          <span>${hasConnection() ? t("connection") : t("unavailable")}</span>
         </button>
         <button class="menu-item" data-action="next" type="button">
-          <span class="option-dot">↻</span>
-          <span>${t("autoConnect")}</span>
+          <span class="menu-icon">↻</span>
+          <span>${t("auto")}</span>
         </button>
       </div>
     </div>
-    <button class="pill ghost" data-action="open" type="button">${t("openButton")}</button>
-  `, { grid: true });
+    <div class="screen-bottom">
+      <button class="outline-pill" data-action="open" type="button">${t("open")}</button>
+    </div>
+  `, "menu");
 }
 
-function renderScreen() {
-  const current = screens[state.screen] || screens[0];
-  const renderers = {
-    welcome: renderWelcome,
-    telegram: renderTelegram,
-    trial: renderTrial,
-    choose: renderChoose,
-    auto: renderAuto,
-    status: renderStatus,
-    menu: renderMenu,
-  };
-  $("#phoneScreen").innerHTML = renderers[current.kind]();
-  renderStrip();
-  renderDots();
-  applyStaticText();
-}
+function render() {
+  const markup = [
+    welcomeScreen(),
+    telegramScreen(),
+    trialScreen(),
+    chooseScreen(),
+    autoScreen(),
+    statusScreen(),
+    menuScreen(),
+  ].join("");
 
-function renderStrip() {
-  $("#screenStrip").innerHTML = screens.map((screen, index) => {
-    const active = index === state.screen ? " active" : "";
-    const titleKey = {
-      welcome: "welcomeTitle",
-      telegram: "telegramButton",
-      trial: "proPlan",
-      choose: "confirm",
-      auto: "autoConnect",
-      status: "statusTitle",
-      menu: "menuTitle",
-    }[screen.kind];
-    return `
-      <button class="thumb${active}" data-screen="${index}" type="button">
-        <strong>${t(titleKey)}</strong>
-        <span>VPNBOSS</span>
-      </button>
-    `;
-  }).join("");
-}
+  $("#screenBoard").innerHTML = markup;
+  $("#activePhone").innerHTML = [welcomeScreen, telegramScreen, trialScreen, chooseScreen, autoScreen, statusScreen, menuScreen][state.active]();
 
-function renderDots() {
-  $("#dots").innerHTML = screens.map((_, index) => {
-    const active = index === state.screen ? " active" : "";
-    return `<button class="dot${active}" data-screen="${index}" type="button" aria-label="Screen ${index + 1}"></button>`;
-  }).join("");
-}
-
-function applyStaticText() {
   document.documentElement.lang = state.lang;
-  $$("[data-i18n]").forEach((node) => {
-    node.textContent = t(node.dataset.i18n);
-  });
-  $$(".lang-btn").forEach((button) => {
-    button.classList.toggle("active", button.dataset.lang === state.lang);
-  });
+  $$(".lang-btn").forEach((button) => button.classList.toggle("active", button.dataset.lang === state.lang));
 }
 
-function setScreen(index) {
-  state.screen = (index + screens.length) % screens.length;
-  localStorage.setItem(STORAGE.screen, String(state.screen));
-  renderScreen();
+function setActive(index) {
+  state.active = (index + screenKeys.length) % screenKeys.length;
+  localStorage.setItem(STORAGE.active, String(state.active));
+  render();
 }
 
 function setLang(lang) {
   state.lang = normalizeLang(lang);
   localStorage.setItem(STORAGE.lang, state.lang);
-  renderScreen();
+  render();
 }
 
-function toast(message, type = "ok") {
-  const node = document.createElement("div");
-  node.className = `toast ${type === "bad" ? "bad" : ""}`;
-  node.textContent = message;
-  $("#toastStack").appendChild(node);
-  setTimeout(() => node.remove(), 2600);
+function hasConnection() {
+  return Boolean(connectionUrl());
+}
+
+function connectionUrl() {
+  return (
+    state.connect?.subUrl ||
+    state.connect?.happLink ||
+    state.configs?.[0]?.url ||
+    state.configs?.[0]?.subscriptionUrl ||
+    state.configs?.[0]?.link ||
+    ""
+  );
 }
 
 async function api(method, path, body) {
@@ -370,15 +337,15 @@ async function api(method, path, body) {
   return data;
 }
 
-async function refreshClient() {
+async function refreshAccess() {
   if (!state.token) return;
   try {
-    state.user = await api("GET", "/api/auth/me").catch(() => null);
+    state.profile = await api("GET", "/api/auth/me").catch(() => null);
     state.connect = await api("GET", "/api/connect").catch(() => null);
     state.configs = await api("GET", "/api/connect/configs")
-      .then((res) => res.configs || [])
+      .then((data) => data.configs || [])
       .catch(() => []);
-    renderScreen();
+    render();
   } catch (error) {
     toast(`${t("error")}: ${error.message}`, "bad");
   }
@@ -389,7 +356,7 @@ async function startTelegram() {
     const init = await api("POST", "/api/auth/tg-init", { mode: "login" });
     const link = init.deepLink || init.botLink;
     if (link) window.open(link, "_blank", "noopener,noreferrer");
-    toast(t("waitingTelegram"));
+    toast(t("waiting"));
 
     if (state.telegramPoll) clearInterval(state.telegramPoll);
     state.telegramPoll = setInterval(async () => {
@@ -400,8 +367,8 @@ async function startTelegram() {
           state.token = check.token;
           localStorage.setItem(STORAGE.token, check.token);
           toast(t("linked"));
-          await refreshClient();
-          setScreen(2);
+          await refreshAccess();
+          setActive(2);
         }
       } catch {
         clearInterval(state.telegramPoll);
@@ -412,11 +379,7 @@ async function startTelegram() {
   }
 }
 
-function connectionUrl() {
-  return state.connect?.subUrl || state.connect?.happLink || state.configs[0]?.url || state.configs[0]?.subscriptionUrl || "";
-}
-
-async function copyKey() {
+async function copyConnection() {
   const url = connectionUrl();
   if (!url) {
     toast(t("unavailable"), "bad");
@@ -426,7 +389,7 @@ async function copyKey() {
   toast(t("copied"));
 }
 
-function openClient() {
+function openConnection() {
   const url = state.connect?.happLink || connectionUrl();
   if (!url) {
     toast(t("unavailable"), "bad");
@@ -435,46 +398,52 @@ function openClient() {
   window.location.href = url;
 }
 
-function handleAction(action) {
-  if (action === "next") setScreen(state.screen + 1);
-  if (action === "confirm") setScreen(4);
-  if (action === "telegram") startTelegram();
-  if (action === "copy") copyKey();
-  if (action === "open") openClient();
+function toast(message, type = "ok") {
+  const node = document.createElement("div");
+  node.className = `toast ${type === "bad" ? "bad" : ""}`;
+  node.textContent = message;
+  $("#toastStack").appendChild(node);
+  setTimeout(() => node.remove(), 2600);
 }
 
-function setupEvents() {
-  $("#prevScreen").addEventListener("click", () => setScreen(state.screen - 1));
-  $("#nextScreen").addEventListener("click", () => setScreen(state.screen + 1));
+function action(name) {
+  if (name === "telegram") startTelegram();
+  if (name === "copy") copyConnection();
+  if (name === "open") openConnection();
+  if (name === "confirm") setActive(4);
+  if (name === "next") setActive(state.active + 1);
+}
 
+function bind() {
   document.addEventListener("click", (event) => {
     const lang = event.target.closest("[data-lang]");
     if (lang) setLang(lang.dataset.lang);
 
     const screen = event.target.closest("[data-screen]");
-    if (screen) setScreen(Number(screen.dataset.screen));
+    if (screen && !event.target.closest("[data-action], [data-access]")) {
+      setActive(screenKeys.indexOf(screen.dataset.screen));
+    }
 
     const access = event.target.closest("[data-access]");
     if (access) {
       state.access = access.dataset.access;
       localStorage.setItem(STORAGE.access, state.access);
-      renderScreen();
+      render();
     }
 
-    const action = event.target.closest("[data-action]");
-    if (action) handleAction(action.dataset.action);
+    const currentAction = event.target.closest("[data-action]");
+    if (currentAction) action(currentAction.dataset.action);
+
+    if (event.target.closest("[data-prev]")) setActive(state.active - 1);
+    if (event.target.closest("[data-next]")) setActive(state.active + 1);
   });
 
   window.addEventListener("keydown", (event) => {
-    if (event.key === "ArrowRight") setScreen(state.screen + 1);
-    if (event.key === "ArrowLeft") setScreen(state.screen - 1);
+    if (event.key === "ArrowLeft") setActive(state.active - 1);
+    if (event.key === "ArrowRight") setActive(state.active + 1);
   });
 }
 
-async function init() {
-  setupEvents();
-  renderScreen();
-  await refreshClient();
-}
-
-init();
+bind();
+render();
+refreshAccess();
