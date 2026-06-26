@@ -31,7 +31,6 @@ except ImportError:  # pragma: no cover
 
 
 APP_NAME = "VPN BOSS"
-BOT_LINK = "https://t.me/Vpnboss_robot"
 BOT_PUBLIC_URL = "https://sekretnik1.vps.webdock.cloud"
 SITE_BASE_URL = "https://vpnboss.space"
 SITE_AUTH_URL = f"{SITE_BASE_URL}/login"
@@ -184,6 +183,9 @@ class ConfigEntry:
     port: int
     uuid: str
     query: dict[str, str]
+    country_code: str | None = None
+    api_name: str | None = None
+    api_detail: str | None = None
 
 
 class SubscriptionError(RuntimeError):
@@ -218,6 +220,40 @@ def parse_vless_uri(uri: str) -> ConfigEntry:
         uuid=parsed.username,
         query=params,
     )
+
+
+def flag_to_country_code(flag: str | None) -> str:
+    chars = list(str(flag or "").strip())
+    if len(chars) != 2 or not is_flag_sequence("".join(chars)):
+        return ""
+    return "".join(chr(ord(ch) - 0x1F1E6 + ord("A")) for ch in chars).lower()
+
+
+def first_text_value(payload: dict[str, Any], keys: tuple[str, ...]) -> str:
+    for key in keys:
+        value = str(payload.get(key) or "").strip()
+        if value:
+            return value
+    return ""
+
+
+def enrich_config_from_api(entry: ConfigEntry, payload: dict[str, Any]) -> ConfigEntry:
+    flag = first_text_value(payload, ("flag", "emoji", "countryFlag")) or entry.flag or ""
+    name = first_text_value(payload, ("name", "displayName", "title", "server", "location", "country", "region"))
+    country_code = first_text_value(payload, ("countryCode", "country_code", "code", "iso", "iso2")).lower()
+    detail = first_text_value(payload, ("detail", "description", "protocol"))
+    if name:
+        entry.api_name = name.replace(flag, "").strip() or name
+        entry.display_name = entry.api_name
+    if flag and is_flag_sequence(flag):
+        entry.flag = flag
+    if not country_code:
+        country_code = flag_to_country_code(entry.flag)
+    if country_code:
+        entry.country_code = country_code
+    if detail:
+        entry.api_detail = detail
+    return entry
 
 
 def normalize_subscription_input(raw_input: str) -> str:
@@ -407,9 +443,10 @@ def build_routes(configs: list[ConfigEntry]) -> list[dict[str, Any]]:
         network = config.query.get("type", "tcp").upper()
         routes.append(
             {
-                "flag": config.flag or "🌐",
-                "name": f"{config.flag + ' ' if config.flag else ''}{config.display_name}".strip(),
-                "detail": f"{security} • {network} • маршрут скрыт",
+                "flag": config.flag or "",
+                "countryCode": config.country_code or flag_to_country_code(config.flag),
+                "name": (config.api_name or config.display_name or "VPNBOSS").strip(),
+                "detail": config.api_detail or f"{security} • {network} • маршрут скрыт",
                 "config_index": idx,
             }
         )
@@ -862,6 +899,7 @@ class XrayManager:
         self.stop()
         self._terminate_managed_processes()
         self.ensure_core()
+        before_ip = self._verify_proxy()
         self.primary_binding = self.route_controller.detect_primary_network()
         self._allocate_ports()
         fd, temp_path = tempfile.mkstemp(prefix="vpnboss_runtime_", suffix=".json", dir=str(APP_DIR))
@@ -894,10 +932,12 @@ class XrayManager:
             raise CoreError(output or "Core terminated immediately.")
         tun_binding = self.route_controller.wait_for_tun()
         self.route_controller.apply_default_route(tun_binding)
-        # Do not block the UI on external IP probing. If TUN is up and the
-        # default route is applied, treat the connection as established and let
-        # traffic start flowing immediately.
-        return ""
+        external_ip = self._verify_proxy()
+        if not external_ip:
+            raise CoreError("VPN tunnel started, but external IP check failed.")
+        if before_ip and external_ip == before_ip:
+            raise CoreError("VPN tunnel started, but external IP did not change.")
+        return external_ip
 
     def _cleanup_runtime_files(self) -> None:
         if self.log_handle is not None:
@@ -1144,14 +1184,22 @@ class DesktopBridge(QObject):
         configs_payload = bundle.get("configs") or []
         raw_items: list[str] = []
         for item in configs_payload:
-            vless = str((item or {}).get("vlessKey") or "").strip()
+            item_payload = item if isinstance(item, dict) else {}
+            vless = first_text_value(item_payload, ("vlessKey", "url", "link", "subscriptionUrl")) if item_payload else str(item or "").strip()
             if vless.lower().startswith("vless://"):
                 raw_items.append(vless)
         if raw_items:
-            parsed = [parse_vless_uri(item) for item in raw_items]
+            parsed = []
+            for index, raw_item in enumerate(raw_items):
+                entry = parse_vless_uri(raw_item)
+                meta = configs_payload[index] if index < len(configs_payload) and isinstance(configs_payload[index], dict) else {}
+                parsed.append(enrich_config_from_api(entry, meta))
             result["configs"] = parsed
         if connect.get("subUrl"):
-            result["subscription_url"] = str(connect.get("subUrl"))
+            subscription_url = str(connect.get("subUrl"))
+            result["subscription_url"] = subscription_url
+            if not result.get("configs"):
+                result["configs"] = fetch_subscription(subscription_url)
         return result
 
     def _site_restore_worker(self) -> dict[str, Any]:
@@ -1254,41 +1302,39 @@ class DesktopBridge(QObject):
         self._track_task(task)
 
     @Slot()
-    def startSiteTelegramAuth(self) -> None:
-        debug_log("startSiteTelegramAuth called")
+    def startSiteAuth(self) -> None:
+        debug_log("startSiteAuth called")
         task = Task(site_api_request, "POST", "/api/auth/tg-init", "", {"mode": "login"})
-        task.signals.finished.connect(lambda result: self._invoke_on_main(self._on_site_tg_init, result))
+        task.signals.finished.connect(lambda result: self._invoke_on_main(self._on_site_auth_init, result))
         task.signals.failed.connect(lambda message: self._invoke_on_main(self._emit_site_auth_error, message))
         self._track_task(task)
 
-    def _on_site_tg_init(self, result: object) -> None:
+    def _on_site_auth_init(self, result: object) -> None:
         payload = dict(result or {})
-        deep_link = str(payload.get("deepLink") or "")
-        bot_link = str(payload.get("botLink") or "")
         web_link = (
             str(payload.get("webLink") or "")
             or str(payload.get("siteLink") or "")
             or str(payload.get("authUrl") or "")
             or str(payload.get("url") or "")
         )
-        candidates = [web_link, bot_link, deep_link, SITE_AUTH_URL, SITE_BASE_URL]
+        candidates = [web_link, SITE_AUTH_URL, SITE_BASE_URL]
         link = next((item for item in candidates if item.startswith("http://") or item.startswith("https://")), "")
-        debug_log(f"TG init result keys={sorted(payload.keys())} web_link={web_link} bot_link={bot_link} deep_link={deep_link} opened={link}")
+        debug_log(f"Site auth init result keys={sorted(payload.keys())} web_link={web_link} opened={link}")
         if link:
             QDesktopServices.openUrl(QUrl(link))
         payload["openedLink"] = link
         self._emit("site_auth_init", payload)
 
     @Slot(str)
-    def checkSiteTelegramAuth(self, web_token: str) -> None:
+    def checkSiteAuth(self, web_token: str) -> None:
         if not web_token.strip():
             return
         task = Task(site_api_request, "GET", f"/api/auth/tg-check/{web_token.strip()}")
-        task.signals.finished.connect(lambda result: self._invoke_on_main(self._on_site_tg_check, result))
+        task.signals.finished.connect(lambda result: self._invoke_on_main(self._on_site_auth_check, result))
         task.signals.failed.connect(lambda message: self._invoke_on_main(self._emit_site_auth_error, message))
         self._track_task(task)
 
-    def _on_site_tg_check(self, result: object) -> None:
+    def _on_site_auth_check(self, result: object) -> None:
         payload = dict(result or {})
         status = str(payload.get("status") or "pending")
         if status != "confirmed":
@@ -1365,6 +1411,10 @@ class DesktopBridge(QObject):
         self._emit("vpn_status", {"busy": False, "connected": True, "externalIp": self.external_ip})
 
     def _on_connect_failed(self, message: str) -> None:
+        try:
+            self.xray.stop()
+        except Exception as exc:
+            debug_log(f"cleanup after connect failure failed: {exc}")
         self.busy = False
         self.connected = False
         self.external_ip = ""
@@ -1389,20 +1439,20 @@ class DesktopBridge(QObject):
         self._emit("vpn_status", {"busy": False, "connected": False})
 
     @Slot()
-    def openTelegramAuth(self) -> None:
-        QDesktopServices.openUrl(QUrl(BOT_LINK))
+    def openSite(self) -> None:
+        QDesktopServices.openUrl(QUrl(SITE_AUTH_URL))
 
     @Slot()
     def openBotTopUp(self) -> None:
-        QDesktopServices.openUrl(QUrl(BOT_LINK))
+        QDesktopServices.openUrl(QUrl(SITE_BASE_URL))
 
     @Slot()
     def openSupport(self) -> None:
-        QDesktopServices.openUrl(QUrl(BOT_LINK))
+        QDesktopServices.openUrl(QUrl(SITE_BASE_URL))
 
     @Slot()
     def openSubscriptions(self) -> None:
-        QDesktopServices.openUrl(QUrl(BOT_LINK))
+        QDesktopServices.openUrl(QUrl(SITE_BASE_URL))
 
 
 class MainWindow(QMainWindow):

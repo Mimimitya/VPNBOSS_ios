@@ -1,4 +1,4 @@
-const BOT_URL = "https://t.me/Vpnboss_robot";
+const SITE_URL = "https://vpnboss.space";
 
 const screens = [...document.querySelectorAll(".screen")];
 const nodes = {
@@ -103,11 +103,27 @@ function flagMarkup(route) {
 
 function renderRoutes() {
   if (!routes.length) {
-    routes = [
-      { flag: "🇩🇰", name: "Дания", detail: "Ожидание подписки" },
-      { flag: "🇫🇮", name: "Финляндия", detail: "Ожидание подписки" },
-      { flag: "🇳🇱", name: "Нидерланды", detail: "Ожидание подписки" },
-    ];
+    [
+      "leftServer",
+      "mainServer",
+      "rightServer",
+      "leftServerOn",
+      "mainServerOn",
+      "rightServerOn",
+    ].forEach((id) => {
+      const node = document.getElementById(id);
+      if (node) node.textContent = "🌐";
+    });
+    [
+      ["serverName", "VPNBOSS"],
+      ["serverNameOn", "VPNBOSS"],
+      ["serverIp", "Ожидание реальной подписки"],
+      ["serverIpOn", "Ожидание реальной подписки"],
+    ].forEach(([id, text]) => {
+      const node = document.getElementById(id);
+      if (node) node.textContent = text;
+    });
+    return;
   }
 
   selectedIndex = Math.max(0, Math.min(selectedIndex, routes.length - 1));
@@ -167,6 +183,7 @@ function showPower(node) {
 function setVpnState(payload = {}) {
   busy = Boolean(payload.busy);
   connected = Boolean(payload.connected);
+  const externalIp = String(payload.externalIp || "").trim();
   nodes.powerButton?.classList.toggle("connecting", busy);
   nodes.powerButtonOn?.classList.toggle("connecting", busy);
   if (busy) {
@@ -179,7 +196,7 @@ function setVpnState(payload = {}) {
   if (connected) {
     showPower(nodes.vpnOnAsset);
     showScreen("home-on");
-    updatePhase("Подключено");
+    updatePhase(externalIp ? `IP: ${externalIp}` : "Подключено");
   } else {
     showPower(nodes.vpnOffAsset);
     showScreen(routes.length ? "home-off" : "auth");
@@ -190,7 +207,11 @@ function setVpnState(payload = {}) {
 
 function startSiteAuth() {
   setStatus("Открываю официальный вход VPNBOSS...");
-  bridge?.startSiteTelegramAuth?.();
+  if (bridge?.startSiteAuth) {
+    bridge.startSiteAuth();
+    return;
+  }
+  window.open(SITE_URL, "_blank");
 }
 
 function stopPoll() {
@@ -202,7 +223,7 @@ function startPoll(token) {
   pendingWebToken = token || "";
   stopPoll();
   if (!pendingWebToken) return;
-  pollTimer = window.setInterval(() => bridge?.checkSiteTelegramAuth?.(pendingWebToken), 2200);
+  pollTimer = window.setInterval(() => bridge?.checkSiteAuth?.(pendingWebToken), 2200);
 }
 
 function applyAuthSuccess(payload = {}) {
@@ -220,7 +241,7 @@ function applyAuthSuccess(payload = {}) {
 function onBridgeEvent(type, payloadText) {
   const payload = parseJson(payloadText);
   if (type === "site_auth_init") {
-    setStatus("Подтвердите вход в Telegram или на сайте");
+    setStatus("Подтвердите вход на сайте VPNBOSS");
     startPoll(payload.webToken);
   }
   if (type === "site_auth_poll") {
@@ -252,8 +273,14 @@ function bindUi() {
   document.querySelectorAll("[data-next]").forEach((button) => {
     button.addEventListener("click", () => showScreen(button.dataset.next));
   });
-  document.querySelectorAll(".tg-open").forEach((button) => {
-    button.addEventListener("click", () => bridge?.openTelegramAuth?.() || window.open(BOT_URL, "_blank"));
+  document.querySelectorAll(".site-open").forEach((button) => {
+    button.addEventListener("click", () => {
+      if (bridge?.openSite) {
+        bridge.openSite();
+        return;
+      }
+      window.open(SITE_URL, "_blank");
+    });
   });
   document.getElementById("siteAuthButton").addEventListener("click", startSiteAuth);
   document.getElementById("prevServer").addEventListener("click", () => setSelected(selectedIndex - 1));
