@@ -20,6 +20,7 @@ let routes = [];
 let selectedIndex = 0;
 let connected = false;
 let busy = false;
+let siteLoggedIn = false;
 
 const COUNTRY_CODE_BY_NAME = {
   "дания": "dk",
@@ -197,7 +198,7 @@ function setVpnState(payload = {}) {
     updatePhase(externalIp ? `IP: ${externalIp}` : "Подключено");
   } else {
     showPower(nodes.vpnOffAsset);
-    showScreen(routes.length ? "home-off" : "auth");
+    showScreen(routes.length ? "home-off" : siteLoggedIn ? "ready" : "auth");
     updatePhase(routes.length ? "Готов к подключению" : "Ожидание доступа");
   }
   renderRoutes();
@@ -213,14 +214,17 @@ function startSiteAuth() {
 }
 
 function applyAuthSuccess(payload = {}) {
+  siteLoggedIn = true;
   const profile = payload.siteProfile || payload.profile || {};
   const name = profile.displayName || profile.username || profile.name || "VPNBOSS";
-  nodes.profileLine.textContent = `${name}: доступ синхронизирован`;
+  nodes.profileLine.textContent = payload.hasSubscription === false
+    ? `${name}: вход выполнен, активной подписки пока нет`
+    : `${name}: доступ синхронизирован`;
   routes = payload.routes || routes;
   selectedIndex = payload.selectedIndex || 0;
   renderRoutes();
-  showScreen(routes.length ? "ready" : "auth");
-  setStatus("Доступ подтверждён");
+  showScreen("ready");
+  setStatus(payload.hasSubscription === false ? "Вход выполнен. Активной подписки пока нет" : "Доступ подтверждён");
 }
 
 function onBridgeEvent(type, payloadText) {
@@ -293,6 +297,7 @@ function initBridge() {
     routes = initial.routes || [];
     selectedIndex = initial.selectedIndex || 0;
     connected = Boolean(initial.connected);
+    siteLoggedIn = Boolean(initial.siteLoggedIn);
     renderRoutes();
     bindUi();
     if (initial.siteLoggedIn) bridge.restoreSiteSession?.();

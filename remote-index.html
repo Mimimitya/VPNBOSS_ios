@@ -165,7 +165,7 @@ nav{position:sticky;top:0;z-index:100;height:86px;display:grid;grid-template-col
     <button class="nav-btn" onclick="showSection('plans')">Главная</button>
     <button class="nav-btn cabinet-btn" id="btnCabinet" onclick="showSection('cabinet')">Связь</button>
     <button class="nav-btn accent" id="btnLogin" onclick="showSection('auth')">Вход | Регистрация</button>
-    <button class="nav-btn" id="btnLogout" onclick="doLogout()" style="display:none">Выйти</button>
+    <button class="nav-btn" id="btnLogout" onclick="showSection('cabinet')" style="display:none">Личный кабинет</button>
   </div>
 </nav>
 
@@ -490,7 +490,8 @@ nav{position:sticky;top:0;z-index:100;height:86px;display:grid;grid-template-col
   setInterval(draw,45);
 })();
 
-let STATE={token:localStorage.getItem('bvpn_token'),user:null,selectedPlan:null,tgPollInterval:null,paymentPollInterval:null,tgAuthMode:null};
+let STATE={token:localStorage.getItem('bvpn_token'),user:null,selectedPlan:null,tgPollInterval:null,paymentPollInterval:null,tgAuthMode:null,appAuthConfirmed:false};
+const APP_AUTH_CODE=new URLSearchParams(window.location.search).get('appCode')||'';
 const SECTION_PATHS={hero:'/',plans:'/plans',auth:'/auth',setup:'/setup',cabinet:'/cabinet','payment-success':'/payment-success'};
 const PATH_SECTIONS=Object.fromEntries(Object.entries(SECTION_PATHS).map(([k,v])=>[v,k]));
 function sectionFromPath(){return PATH_SECTIONS[window.location.pathname]||'hero'}
@@ -528,6 +529,19 @@ async function api(method,path,body){
     throw err;
   }
   return data;
+}
+
+async function confirmAppAuthIfNeeded(){
+  if(!APP_AUTH_CODE||!STATE.token||STATE.appAuthConfirmed)return false;
+  try{
+    await api('POST','/api/app-auth/confirm',{appCode:APP_AUTH_CODE});
+    STATE.appAuthConfirmed=true;
+    toast('Приложение подключено','ok');
+    return true;
+  }catch(e){
+    toast(e.message||'Не удалось подтвердить вход в приложение','err');
+    return false;
+  }
 }
 
 function toast(msg,type='ok'){
@@ -652,6 +666,7 @@ async function onLogin(token,tid){
   localStorage.setItem('bvpn_token',token);
   updateNavAuth(true);
   const user=await loadUser();
+  await confirmAppAuthIfNeeded();
   toast('Добро пожаловать!','ok');
   if(user?.needsProfileCompletion){
     syncRequiredProfileModal();
@@ -1297,7 +1312,7 @@ async function init(){
   renderPlans();
   if(STATE.token){
     const u=await loadUser();
-    if(u){updateNavAuth(true);}
+    if(u){updateNavAuth(true);await confirmAppAuthIfNeeded();}
     else{STATE.token=null;localStorage.removeItem('bvpn_token');}
     syncRequiredProfileModal();
   }
