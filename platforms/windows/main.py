@@ -489,12 +489,7 @@ class SecureStateStore:
 
 def build_routes(configs: list[ConfigEntry]) -> list[dict[str, Any]]:
     routes: list[dict[str, Any]] = []
-    seen: set[str] = set()
     for idx, config in enumerate(configs):
-        key = f"{config.host}:{config.port}"
-        if key in seen:
-            continue
-        seen.add(key)
         security = config.query.get("security", "none").upper()
         network = config.query.get("type", "tcp").upper()
         routes.append(
@@ -693,41 +688,77 @@ class TunRouteController:
 
     def apply_default_route(self, tun: TunBinding) -> None:
         self.clear_default_route()
-        delete_command = ["route", "delete", "0.0.0.0", "mask", "0.0.0.0", tun.ip_address]
-        subprocess.run(delete_command, capture_output=True, text=True, timeout=8, check=False)
-        add_command = [
-            "route",
-            "add",
-            "0.0.0.0",
-            "mask",
-            "0.0.0.0",
-            tun.ip_address,
-            "if",
-            str(tun.interface_index),
-            "metric",
-            "3",
+        cleanup_command = [
+            "powershell",
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-Command",
+            (
+                f"Get-NetRoute -DestinationPrefix '0.0.0.0/0' -InterfaceIndex {tun.interface_index} -ErrorAction SilentlyContinue | "
+                "Remove-NetRoute -Confirm:$false -ErrorAction SilentlyContinue"
+            ),
         ]
-        result = subprocess.run(add_command, capture_output=True, text=True, timeout=8, check=False)
+        subprocess.run(cleanup_command, capture_output=True, text=True, timeout=10, check=False)
+        command = [
+            "powershell",
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-Command",
+            (
+                f"New-NetRoute -DestinationPrefix '0.0.0.0/0' -InterfaceIndex {tun.interface_index} "
+                "-NextHop '0.0.0.0' -RouteMetric 3 -PolicyStore ActiveStore -ErrorAction Stop"
+            ),
+        ]
+        result = subprocess.run(command, capture_output=True, text=True, timeout=10, check=False)
         if result.returncode != 0:
-            raise CoreError((result.stderr or result.stdout or "Failed to add default route.").strip())
-        self.active_route = (tun.ip_address, tun.interface_index)
-        debug_log(f"Applied TUN default route via {tun.ip_address} if {tun.interface_index}")
+            fallback = [
+                "route",
+                "add",
+                "0.0.0.0",
+                "mask",
+                "0.0.0.0",
+                tun.ip_address,
+                "if",
+                str(tun.interface_index),
+                "metric",
+                "3",
+            ]
+            result = subprocess.run(fallback, capture_output=True, text=True, timeout=8, check=False)
+            if result.returncode != 0:
+                raise CoreError((result.stderr or result.stdout or "Failed to add default route.").strip())
+        self.active_route = ("0.0.0.0", tun.interface_index)
+        debug_log(f"Applied TUN default route on if {tun.interface_index}")
 
     def clear_default_route(self) -> None:
         if not self.active_route:
             return
         gateway, interface_index = self.active_route
-        delete_command = [
-            "route",
-            "delete",
-            "0.0.0.0",
-            "mask",
-            "0.0.0.0",
-            gateway,
-            "if",
-            str(interface_index),
+        command = [
+            "powershell",
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-Command",
+            (
+                f"Get-NetRoute -DestinationPrefix '0.0.0.0/0' -InterfaceIndex {interface_index} -ErrorAction SilentlyContinue | "
+                "Remove-NetRoute -Confirm:$false -ErrorAction SilentlyContinue"
+            ),
         ]
-        result = subprocess.run(delete_command, capture_output=True, text=True, timeout=8, check=False)
+        result = subprocess.run(command, capture_output=True, text=True, timeout=10, check=False)
+        if result.returncode != 0:
+            delete_command = [
+                "route",
+                "delete",
+                "0.0.0.0",
+                "mask",
+                "0.0.0.0",
+                gateway,
+                "if",
+                str(interface_index),
+            ]
+            result = subprocess.run(delete_command, capture_output=True, text=True, timeout=8, check=False)
         debug_log(
             f"Cleared TUN route rc={result.returncode} out={(result.stdout or '')[-120:]} err={(result.stderr or '')[-120:]}"
         )
@@ -907,8 +938,6 @@ class XrayManager:
                     "settings": {"name": self.tun_name, "MTU": 1500},
                     "sniffing": {"enabled": True, "destOverride": ["http", "tls", "quic"]},
                 },
-                {"listen": SYSTEM_PROXY_HOST, "port": self.socks_port, "protocol": "socks", "settings": {"udp": True}},
-                {"listen": SYSTEM_PROXY_HOST, "port": self.http_port, "protocol": "http", "settings": {"timeout": 0}},
             ],
             "outbounds": [
                 proxy_outbound,
@@ -924,40 +953,31 @@ class XrayManager:
             },
         }
 
-    def _verify_proxy(self) -> str:
-        proxy_variants = [
-            {},
-            {
-                "http": f"http://{SYSTEM_PROXY_HOST}:{self.http_port}",
-                "https": f"http://{SYSTEM_PROXY_HOST}:{self.http_port}",
-            },
-        ]
+    def _verify_system_route(self) -> str:
         for url in PROXY_TEST_URLS:
-            for proxies in proxy_variants:
+            try:
+                response = requests.get(url, timeout=6)
+                response.raise_for_status()
+            except requests.RequestException:
+                continue
+            if "json" in response.headers.get("Content-Type", "").lower():
                 try:
-                    response = requests.get(url, proxies=proxies or None, timeout=6)
-                    response.raise_for_status()
-                except requests.RequestException:
-                    continue
-                if "json" in response.headers.get("Content-Type", "").lower():
-                    try:
-                        payload = response.json()
-                        ip = str(payload.get("ip", "")).strip()
-                    except ValueError:
-                        ip = ""
-                else:
-                    ip = response.text.strip()
-                if ip:
-                    return ip
+                    payload = response.json()
+                    ip = str(payload.get("ip", "")).strip()
+                except ValueError:
+                    ip = ""
+            else:
+                ip = response.text.strip()
+            if ip:
+                return ip
         return ""
 
     def start(self, entry: ConfigEntry) -> str:
         self.stop()
         self._terminate_managed_processes()
         self.ensure_core()
-        before_ip = self._verify_proxy()
+        before_ip = self._verify_system_route()
         self.primary_binding = self.route_controller.detect_primary_network()
-        self._allocate_ports()
         fd, temp_path = tempfile.mkstemp(prefix="vpnboss_runtime_", suffix=".json", dir=str(APP_DIR))
         os.close(fd)
         self.runtime_config_path = Path(temp_path)
@@ -988,7 +1008,7 @@ class XrayManager:
             raise CoreError(output or "Core terminated immediately.")
         tun_binding = self.route_controller.wait_for_tun()
         self.route_controller.apply_default_route(tun_binding)
-        external_ip = self._verify_proxy()
+        external_ip = self._verify_system_route()
         if not external_ip:
             raise CoreError("VPN tunnel started, but external IP check failed.")
         if before_ip and external_ip == before_ip:
@@ -1295,6 +1315,16 @@ class DesktopBridge(QObject):
         result: dict[str, Any] = {"profile": profile}
 
         connect = bundle.get("connect") or {}
+        subscription_url = str(connect.get("subUrl") or "").strip()
+        if subscription_url:
+            result["subscription_url"] = subscription_url
+            try:
+                result["configs"] = fetch_subscription(subscription_url)
+                return result
+            except Exception as exc:
+                result["subscription_error"] = str(exc)
+                debug_log(f"Subscription export fetch failed, falling back to connect configs: {exc}")
+
         configs_payload = bundle.get("configs") or []
         raw_items: list[str] = []
         for item in configs_payload:
@@ -1309,11 +1339,6 @@ class DesktopBridge(QObject):
                 meta = configs_payload[index] if index < len(configs_payload) and isinstance(configs_payload[index], dict) else {}
                 parsed.append(enrich_config_from_api(entry, meta))
             result["configs"] = parsed
-        if connect.get("subUrl"):
-            subscription_url = str(connect.get("subUrl"))
-            result["subscription_url"] = subscription_url
-            if not result.get("configs"):
-                result["configs"] = fetch_subscription(subscription_url)
         return result
 
     def _site_restore_worker(self) -> dict[str, Any]:
