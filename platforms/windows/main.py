@@ -34,6 +34,7 @@ APP_NAME = "VPN BOSS"
 BOT_LINK = "https://t.me/Vpnboss_robot"
 BOT_PUBLIC_URL = "https://sekretnik1.vps.webdock.cloud"
 SITE_BASE_URL = "https://vpnboss.space"
+SITE_AUTH_URL = f"{SITE_BASE_URL}/login"
 APP_DIR = Path(os.getenv("APPDATA", Path.home())) / "VPN BOSS Windows"
 STATE_FILE = APP_DIR / "state.bin"
 CORE_DIR = APP_DIR / "core"
@@ -1229,10 +1230,18 @@ class DesktopBridge(QObject):
         payload = dict(result or {})
         deep_link = str(payload.get("deepLink") or "")
         bot_link = str(payload.get("botLink") or "")
-        link = deep_link or bot_link
-        debug_log(f"TG init result keys={sorted(payload.keys())} link={link}")
+        web_link = (
+            str(payload.get("webLink") or "")
+            or str(payload.get("siteLink") or "")
+            or str(payload.get("authUrl") or "")
+            or str(payload.get("url") or "")
+        )
+        candidates = [web_link, bot_link, deep_link, SITE_AUTH_URL, SITE_BASE_URL]
+        link = next((item for item in candidates if item.startswith("http://") or item.startswith("https://")), "")
+        debug_log(f"TG init result keys={sorted(payload.keys())} web_link={web_link} bot_link={bot_link} deep_link={deep_link} opened={link}")
         if link:
             QDesktopServices.openUrl(QUrl(link))
+        payload["openedLink"] = link
         self._emit("site_auth_init", payload)
 
     @Slot(str)
