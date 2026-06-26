@@ -271,7 +271,7 @@ function bindUi() {
   document.getElementById("nextServer").addEventListener("click", () => setSelected(selectedIndex + 1));
   document.getElementById("prevServerOn").addEventListener("click", () => setSelected(selectedIndex - 1));
   document.getElementById("nextServerOn").addEventListener("click", () => setSelected(selectedIndex + 1));
-  nodes.powerButton.addEventListener("click", startAutoConnect);
+  nodes.powerButton.addEventListener("click", () => bridge?.connectVpn?.());
   nodes.powerButtonOn.addEventListener("click", () => bridge?.disconnectVpn?.());
   document.getElementById("autoConnect").addEventListener("click", startAutoConnect);
   document.getElementById("disconnectButton").addEventListener("click", () => bridge?.disconnectVpn?.());
