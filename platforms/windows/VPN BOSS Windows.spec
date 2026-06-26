@@ -31,6 +31,7 @@ exe = EXE(
     strip=False,
     upx=True,
     console=False,
+    icon='vpnboss.ico',
     disable_windowed_traceback=False,
 )
 

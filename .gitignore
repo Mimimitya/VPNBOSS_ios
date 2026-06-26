@@ -2,3 +2,8 @@ ops/vps-ssh.json
 ops/*.secret.json
 *.pem
 *.key
+platforms/**/build/
+platforms/android/.gradle/
+platforms/android/local.properties
+platforms/windows/dist/
+releases/
