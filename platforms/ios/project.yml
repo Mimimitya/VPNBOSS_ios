@@ -1,0 +1,19 @@
+name: VPNBOSS
+options:
+  bundleIdPrefix: space.vpnboss
+  deploymentTarget:
+    iOS: "16.0"
+targets:
+  VPNBOSS:
+    type: application
+    platform: iOS
+    sources:
+      - VPNBOSS
+    resources:
+      - VPNBOSS/Resources
+    settings:
+      PRODUCT_BUNDLE_IDENTIFIER: space.vpnboss.client
+      INFOPLIST_FILE: VPNBOSS/Info.plist
+      ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+    entitlements:
+      path: VPNBOSS/VPNBOSS.entitlements

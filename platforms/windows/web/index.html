@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>VPNBOSS</title>
+    <link rel="stylesheet" href="globals.css" />
+    <link rel="stylesheet" href="style.css" />
+    <script src="qrc:///qtwebchannel/qwebchannel.js"></script>
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="screen active" data-screen="welcome">
+        <header class="header">
+          <span></span>
+          <button class="icon-button tg-open" type="button" aria-label="Telegram">
+            <img src="notify.png" alt="" />
+          </button>
+        </header>
+        <div class="welcome-copy">
+          <p>Добро пожаловать в</p>
+          <img src="logo.png" alt="VPNBOSS" />
+        </div>
+        <button class="text-button" data-next="auth" type="button">Далее →</button>
+      </section>
+
+      <section class="screen" data-screen="auth">
+        <header class="header">
+          <img class="logo" src="logo.png" alt="VPNBOSS" />
+          <button class="icon-button tg-open" type="button" aria-label="Telegram">
+            <img src="notify.png" alt="" />
+          </button>
+        </header>
+        <div class="auth-copy">
+          <h1>Перед началом работы авторизуйтесь через сайт VPNBOSS</h1>
+          <p>Откроется официальный вход vpnboss.space. После подтверждения приложение автоматически подтянет подписку и серверы.</p>
+        </div>
+        <button class="telegram-button" id="siteAuthButton" type="button">
+          <img src="telegram.png" alt="" />
+          <span>Войти через vpnboss.space</span>
+        </button>
+        <p class="status-line" id="authStatus">Ожидание авторизации</p>
+      </section>
+
+      <section class="screen" data-screen="ready">
+        <header class="header">
+          <img class="logo" src="logo.png" alt="VPNBOSS" />
+          <button class="icon-button tg-open" type="button" aria-label="Telegram">
+            <img src="notify.png" alt="" />
+          </button>
+        </header>
+        <div class="ready-copy">
+          <h2>Ваш доступ готов</h2>
+          <p id="profileLine">Подписка будет загружена автоматически.</p>
+        </div>
+        <button class="text-button" data-next="home-off" type="button">Далее →</button>
+      </section>
+
+      <section class="screen screen-home" data-screen="home-off">
+        <header class="header">
+          <img class="logo" src="logo.png" alt="VPNBOSS" />
+          <button class="icon-button tg-open" type="button" aria-label="Telegram">
+            <img src="notify.png" alt="" />
+          </button>
+        </header>
+
+        <button class="power-button" id="powerButton" type="button" aria-label="Подключить">
+          <img class="power-asset is-visible" id="vpnOffAsset" src="VPN_OFF.svg" alt="" />
+          <img class="power-asset" id="onFirstAnimation" src="ON_FIRST_ANIMATION.gif" alt="" />
+          <img class="power-asset" id="loadingAnimation" src="LOADING_ANIMATION.gif" alt="" />
+          <img class="power-asset" id="onAnimation" src="ON_ANIMATION.gif" alt="" />
+        </button>
+
+        <p class="label">Выберите локацию сервера</p>
+        <div class="server-selector">
+          <button class="arrow" id="prevServer" type="button">‹</button>
+          <div class="server-badge side" id="leftServer">🌐</div>
+          <div class="server-badge main" id="mainServer">🌐</div>
+          <div class="server-badge side" id="rightServer">🌐</div>
+          <button class="arrow" id="nextServer" type="button">›</button>
+        </div>
+        <p class="server-name" id="serverName">Сервер</p>
+        <p class="server-ip" id="serverIp">Ожидание подписки</p>
+        <button class="action-button" id="autoConnect" type="button">АВТОПОДКЛЮЧЕНИЕ</button>
+      </section>
+
+      <section class="screen screen-home" data-screen="home-on">
+        <header class="header">
+          <img class="logo" src="logo.png" alt="VPNBOSS" />
+          <button class="icon-button tg-open" type="button" aria-label="Telegram">
+            <img src="notify.png" alt="" />
+          </button>
+        </header>
+        <button class="power-button connected" id="powerButtonOn" type="button" aria-label="Отключить">
+          <img class="power-asset is-visible" id="vpnOnAsset" src="VPN _ON_BUTTON.svg" alt="" />
+        </button>
+        <p class="label">VPNBOSS включён</p>
+        <div class="server-selector">
+          <button class="arrow" id="prevServerOn" type="button">‹</button>
+          <div class="server-badge side" id="leftServerOn">🌐</div>
+          <div class="server-badge main" id="mainServerOn">🌐</div>
+          <div class="server-badge side" id="rightServerOn">🌐</div>
+          <button class="arrow" id="nextServerOn" type="button">›</button>
+        </div>
+        <p class="server-name" id="serverNameOn">Сервер</p>
+        <p class="server-ip" id="serverIpOn">Подключено</p>
+        <button class="action-button active" id="disconnectButton" type="button">ОТКЛЮЧИТЬ VPN</button>
+      </section>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>

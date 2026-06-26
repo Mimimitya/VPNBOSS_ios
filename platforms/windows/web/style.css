@@ -1,0 +1,245 @@
+:root {
+  --bg: #f6f6f6;
+  --ink: #000;
+  --muted: #555;
+  --line: rgba(0, 0, 0, 0.12);
+}
+
+body {
+  display: flex;
+  justify-content: center;
+  background: #fff;
+  color: var(--ink);
+  overflow: hidden;
+}
+
+.app-shell {
+  position: relative;
+  width: 100%;
+  max-width: 430px;
+  min-height: 852px;
+  background: var(--bg);
+  overflow: hidden;
+}
+
+.screen {
+  position: absolute;
+  inset: 0;
+  padding: max(34px, env(safe-area-inset-top)) 21px 35px;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(16px);
+  transition: opacity 240ms ease, transform 240ms ease;
+}
+
+.screen.active {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateX(0);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.logo {
+  width: 208px;
+  height: 34px;
+  object-fit: contain;
+}
+
+.icon-button {
+  display: grid;
+  place-items: center;
+  border: 0;
+  background: transparent;
+}
+
+.icon-button img {
+  width: 21px;
+  height: 21px;
+  object-fit: contain;
+}
+
+.welcome-copy {
+  margin-top: 255px;
+  text-align: center;
+}
+
+.welcome-copy p {
+  margin: 0 0 18px;
+  font-size: 32px;
+  line-height: 1.05;
+}
+
+.welcome-copy img {
+  width: 220px;
+  margin: 0 auto;
+}
+
+.text-button {
+  position: absolute;
+  left: 21px;
+  bottom: 34px;
+  border: 0;
+  background: transparent;
+  font-size: 18px;
+  color: var(--ink);
+}
+
+.auth-copy {
+  margin-top: 170px;
+}
+
+.auth-copy h1,
+.ready-copy h2 {
+  margin: 0;
+  font-size: 26px;
+  line-height: 1.08;
+}
+
+.auth-copy p,
+.ready-copy p,
+.status-line {
+  margin: 16px 0 0;
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1.34;
+}
+
+.telegram-button,
+.action-button {
+  width: 100%;
+  min-height: 54px;
+  border: 0;
+  border-radius: 999px;
+  background: #000;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-size: 16px;
+  margin-top: 28px;
+}
+
+.telegram-button img {
+  width: 24px;
+  height: 24px;
+}
+
+.ready-copy {
+  margin-top: 245px;
+  text-align: center;
+}
+
+.power-button {
+  position: relative;
+  display: block;
+  width: 217px;
+  height: 217px;
+  margin: 118px auto 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  overflow: hidden;
+  transition: transform 180ms ease;
+}
+
+.power-button:active,
+.power-button.connecting {
+  transform: scale(0.985);
+}
+
+.power-asset {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  visibility: hidden;
+}
+
+.power-asset.is-visible {
+  opacity: 1;
+  visibility: visible;
+}
+
+.label {
+  margin: 42px 0 0;
+  text-align: center;
+  font-size: 16px;
+}
+
+.server-selector {
+  display: grid;
+  grid-template-columns: 26px 50px 90px 50px 26px;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  margin-top: 18px;
+}
+
+.arrow {
+  border: 0;
+  background: transparent;
+  font-size: 42px;
+  line-height: 1;
+}
+
+.server-badge {
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #fff;
+  overflow: hidden;
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.12);
+}
+
+.server-badge.main {
+  width: 90px;
+  height: 90px;
+  font-size: 42px;
+}
+
+.server-badge.side {
+  width: 50px;
+  height: 50px;
+  font-size: 25px;
+}
+
+.flag-svg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.server-name {
+  margin: 18px 0 0;
+  text-align: center;
+  font-size: 24px;
+}
+
+.server-ip {
+  margin: 8px 0 0;
+  text-align: center;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.action-button {
+  position: absolute;
+  left: 21px;
+  right: 21px;
+  bottom: 38px;
+  width: calc(100% - 42px);
+  margin: 0;
+  font-weight: 700;
+}
+
+.action-button.active {
+  background: #27070f;
+}
