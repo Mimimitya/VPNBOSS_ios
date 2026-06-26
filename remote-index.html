@@ -532,7 +532,7 @@ async function api(method,path,body){
 }
 
 async function confirmAppAuthIfNeeded(){
-  if(!APP_AUTH_CODE||!STATE.token||STATE.appAuthConfirmed)return false;
+  if(!APP_AUTH_CODE||!STATE.user||STATE.appAuthConfirmed)return false;
   try{
     await api('POST','/api/app-auth/confirm',{appCode:APP_AUTH_CODE});
     STATE.appAuthConfirmed=true;
@@ -764,7 +764,7 @@ function onPlanClick(key){
   const basePlan=PLANS_CACHE.find(p=>p.key===key);
   const plan=basePlan?.custom?buildCustomPlanState():basePlan;
   STATE.selectedPlan=plan;
-  if(!STATE.token){showSection('auth');toast('Войдите для оформления','info');return;}
+  if(!STATE.user){showSection('auth');toast('Войдите для оформления','info');return;}
   if(STATE.user?.needsProfileCompletion){showSection('cabinet');toast('Сначала завершите регистрацию','err');return;}
   if(plan?.custom){STATE.customPlan=buildCustomPlanState();openCustomPlanModal();return;}
   openPlanModal(plan);
@@ -959,7 +959,7 @@ function selectIosRegion(r){
 async function addDevice(){
   const name=document.getElementById('devNameInput').value.trim();
   if(!name)return toast('Введите название','err');
-  if(!STATE.token){showSection('auth');return;}
+  if(!STATE.user){showSection('auth');return;}
   try{
     await api('POST','/api/devices',{name});
     toast('Устройство добавлено!','ok');
@@ -1037,8 +1037,19 @@ async function loadUser(){
     syncRequiredProfileModal();
     return STATE.user;
   }catch(e){
-    if(e.message==='Unauthorized'){doLogout();}
-    else{closeModal('requiredProfileModal');}
+    if(e.status===401 && STATE.token){
+      // A stale bearer token must not override a still-valid HttpOnly session cookie.
+      STATE.token=null;
+      localStorage.removeItem('bvpn_token');
+      try{
+        STATE.user=await api('GET','/api/auth/me');
+        syncRequiredProfileModal();
+        return STATE.user;
+      }catch(_){ }
+    }
+    STATE.user=null;
+    updateNavAuth(false);
+    closeModal('requiredProfileModal');
     return null;
   }
 }
@@ -1310,12 +1321,11 @@ async function completeProfile(){
 
 async function init(){
   renderPlans();
-  if(STATE.token){
-    const u=await loadUser();
-    if(u){updateNavAuth(true);await confirmAppAuthIfNeeded();}
-    else{STATE.token=null;localStorage.removeItem('bvpn_token');}
-    syncRequiredProfileModal();
-  }
+  // Always probe /auth/me: the durable session is stored in an HttpOnly cookie,
+  // so it intentionally cannot be discovered through localStorage.
+  const u=await loadUser();
+  if(u){updateNavAuth(true);await confirmAppAuthIfNeeded();}
+  syncRequiredProfileModal();
   showSection(sectionFromPath(),{replace:true,instant:true});
   setTimeout(()=>{
     document.getElementById('loading').classList.add('hide');
