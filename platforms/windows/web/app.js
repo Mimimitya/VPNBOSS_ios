@@ -20,8 +20,6 @@ let routes = [];
 let selectedIndex = 0;
 let connected = false;
 let busy = false;
-let pendingWebToken = "";
-let pollTimer = 0;
 
 const COUNTRY_CODE_BY_NAME = {
   "дания": "dk",
@@ -214,20 +212,7 @@ function startSiteAuth() {
   window.open(SITE_URL, "_blank");
 }
 
-function stopPoll() {
-  if (pollTimer) window.clearInterval(pollTimer);
-  pollTimer = 0;
-}
-
-function startPoll(token) {
-  pendingWebToken = token || "";
-  stopPoll();
-  if (!pendingWebToken) return;
-  pollTimer = window.setInterval(() => bridge?.checkSiteAuth?.(pendingWebToken), 2200);
-}
-
 function applyAuthSuccess(payload = {}) {
-  stopPoll();
   const profile = payload.siteProfile || payload.profile || {};
   const name = profile.displayName || profile.username || profile.name || "VPNBOSS";
   nodes.profileLine.textContent = `${name}: доступ синхронизирован`;
@@ -241,8 +226,7 @@ function applyAuthSuccess(payload = {}) {
 function onBridgeEvent(type, payloadText) {
   const payload = parseJson(payloadText);
   if (type === "site_auth_init") {
-    setStatus("Подтвердите вход на сайте VPNBOSS");
-    startPoll(payload.webToken);
+    setStatus("Войдите на сайте VPNBOSS в открытом окне");
   }
   if (type === "site_auth_poll") {
     setStatus(payload.status === "confirmed" ? "Подтверждено" : "Ожидание подтверждения");

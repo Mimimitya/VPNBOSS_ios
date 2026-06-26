@@ -18,11 +18,11 @@ from typing import Any
 from urllib.parse import parse_qs, unquote, urlparse
 
 import requests
-from PySide6.QtCore import QObject, QRunnable, QThreadPool, QUrl, Signal, Slot
+from PySide6.QtCore import QObject, QRunnable, QThreadPool, QTimer, QUrl, Signal, Slot
 from PySide6.QtGui import QDesktopServices
 from PySide6.QtWebChannel import QWebChannel
 from PySide6.QtWebEngineWidgets import QWebEngineView
-from PySide6.QtWidgets import QApplication, QMainWindow
+from PySide6.QtWidgets import QApplication, QDialog, QMainWindow, QVBoxLayout
 
 try:
     import winreg
@@ -33,7 +33,7 @@ except ImportError:  # pragma: no cover
 APP_NAME = "VPN BOSS"
 BOT_PUBLIC_URL = "https://sekretnik1.vps.webdock.cloud"
 SITE_BASE_URL = "https://vpnboss.space"
-SITE_AUTH_URL = f"{SITE_BASE_URL}/login"
+SITE_AUTH_URL = f"{SITE_BASE_URL}/auth"
 APP_DIR = Path(os.getenv("APPDATA", Path.home())) / "VPN BOSS Windows"
 STATE_FILE = APP_DIR / "state.bin"
 CORE_DIR = APP_DIR / "core"
@@ -997,6 +997,58 @@ class Task(QRunnable):
             debug_log("Task finished after signal source deletion.")
 
 
+class SiteAuthDialog(QDialog):
+    tokenCaptured = Signal(str)
+
+    TOKEN_SCRIPT = """
+(() => {
+  const keys = ["bvpn_token", "vpnboss_token"];
+  for (const key of keys) {
+    const token = localStorage.getItem(key) || sessionStorage.getItem(key);
+    if (token) return token;
+  }
+  return "";
+})()
+"""
+
+    def __init__(self, parent=None) -> None:
+        super().__init__(parent)
+        self._captured = False
+        self.setWindowTitle("VPNBOSS")
+        self.resize(1040, 780)
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        self.view = QWebEngineView(self)
+        layout.addWidget(self.view)
+        self.timer = QTimer(self)
+        self.timer.setInterval(700)
+        self.timer.timeout.connect(self._poll_token)
+        self.view.loadFinished.connect(lambda _: self._poll_token())
+        self.view.setUrl(QUrl(SITE_AUTH_URL))
+
+    def showEvent(self, event) -> None:
+        super().showEvent(event)
+        self.timer.start()
+
+    def closeEvent(self, event) -> None:
+        self.timer.stop()
+        super().closeEvent(event)
+
+    def _poll_token(self) -> None:
+        if self._captured:
+            return
+        self.view.page().runJavaScript(self.TOKEN_SCRIPT, self._handle_token)
+
+    def _handle_token(self, token: object) -> None:
+        value = str(token or "").strip()
+        if not value or self._captured:
+            return
+        self._captured = True
+        self.timer.stop()
+        self.tokenCaptured.emit(value)
+        self.accept()
+
+
 class DesktopBridge(QObject):
     eventEmitted = Signal(str, str)
     mainThreadInvoke = Signal(object)
@@ -1014,6 +1066,7 @@ class DesktopBridge(QObject):
         self.external_ip = ""
         self.site_session_token = str(self.store.state.get("site_session_token", ""))
         self.site_profile = self.store.state.get("site_profile", {}) or {}
+        self.auth_dialog: SiteAuthDialog | None = None
         self._tasks: set[Task] = set()
         self.mainThreadInvoke.connect(self._run_main_thread_callback)
 
@@ -1304,51 +1357,22 @@ class DesktopBridge(QObject):
     @Slot()
     def startSiteAuth(self) -> None:
         debug_log("startSiteAuth called")
-        task = Task(site_api_request, "POST", "/api/auth/tg-init", "", {"mode": "login"})
-        task.signals.finished.connect(lambda result: self._invoke_on_main(self._on_site_auth_init, result))
-        task.signals.failed.connect(lambda message: self._invoke_on_main(self._emit_site_auth_error, message))
-        self._track_task(task)
-
-    def _on_site_auth_init(self, result: object) -> None:
-        payload = dict(result or {})
-        web_link = (
-            str(payload.get("webLink") or "")
-            or str(payload.get("siteLink") or "")
-            or str(payload.get("authUrl") or "")
-            or str(payload.get("url") or "")
-        )
-        candidates = [web_link, SITE_AUTH_URL, SITE_BASE_URL]
-        link = next((item for item in candidates if item.startswith("http://") or item.startswith("https://")), "")
-        debug_log(f"Site auth init result keys={sorted(payload.keys())} web_link={web_link} opened={link}")
-        if link:
-            QDesktopServices.openUrl(QUrl(link))
-        payload["openedLink"] = link
-        self._emit("site_auth_init", payload)
-
-    @Slot(str)
-    def checkSiteAuth(self, web_token: str) -> None:
-        if not web_token.strip():
+        if self.auth_dialog is not None:
+            self.auth_dialog.raise_()
+            self.auth_dialog.activateWindow()
             return
-        task = Task(site_api_request, "GET", f"/api/auth/tg-check/{web_token.strip()}")
-        task.signals.finished.connect(lambda result: self._invoke_on_main(self._on_site_auth_check, result))
-        task.signals.failed.connect(lambda message: self._invoke_on_main(self._emit_site_auth_error, message))
-        self._track_task(task)
+        self._emit("site_auth_init", {"openedLink": SITE_AUTH_URL})
+        dialog = SiteAuthDialog(QApplication.activeWindow())
+        self.auth_dialog = dialog
+        dialog.tokenCaptured.connect(self._finish_site_session_from_site_token)
+        dialog.finished.connect(lambda _: self._clear_auth_dialog())
+        dialog.show()
 
-    def _on_site_auth_check(self, result: object) -> None:
-        payload = dict(result or {})
-        status = str(payload.get("status") or "pending")
-        if status != "confirmed":
-            self._emit("site_auth_poll", {"status": status})
-            return
-        self.site_session_token = str(payload.get("token") or "")
-        if not self.site_session_token:
-            self._emit("site_auth_error", {"error": "Сайт не вернул сессию после подтверждения."})
-            return
-        self._emit("site_auth_poll", {"status": "confirmed"})
-        task = Task(self._site_restore_worker)
-        task.signals.finished.connect(lambda result: self._invoke_on_main(self._apply_site_restore, result, "site_auth_success"))
-        task.signals.failed.connect(lambda message: self._invoke_on_main(self._emit_site_auth_error, message))
-        self._track_task(task)
+    def _clear_auth_dialog(self) -> None:
+        self.auth_dialog = None
+
+    def _finish_site_session_from_site_token(self, token: str) -> None:
+        self._finish_site_session_from_auth({"token": token})
 
     @Slot(str)
     def importSubscription(self, raw_input: str) -> None:
