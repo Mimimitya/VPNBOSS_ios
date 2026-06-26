@@ -2,6 +2,8 @@
 *::before,
 *::after {
   box-sizing: border-box;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 html,
@@ -17,4 +19,11 @@ button {
 
 button {
   cursor: pointer;
+}
+
+img,
+svg {
+  -webkit-user-drag: none;
+  user-drag: none;
+  pointer-events: none;
 }

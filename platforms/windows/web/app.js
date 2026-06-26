@@ -4,6 +4,8 @@ const screens = [...document.querySelectorAll(".screen")];
 const nodes = {
   authStatus: document.getElementById("authStatus"),
   profileLine: document.getElementById("profileLine"),
+  connectionPhase: document.getElementById("connectionPhase"),
+  connectionPhaseOn: document.getElementById("connectionPhaseOn"),
   powerButton: document.getElementById("powerButton"),
   powerButtonOn: document.getElementById("powerButtonOn"),
   vpnOffAsset: document.getElementById("vpnOffAsset"),
@@ -20,6 +22,35 @@ let connected = false;
 let busy = false;
 let pendingWebToken = "";
 let pollTimer = 0;
+
+const COUNTRY_CODE_BY_NAME = {
+  "дания": "dk",
+  "denmark": "dk",
+  "финляндия": "fi",
+  "finland": "fi",
+  "нидерланды": "nl",
+  "netherlands": "nl",
+  "германия": "de",
+  "germany": "de",
+  "франция": "fr",
+  "france": "fr",
+  "польша": "pl",
+  "poland": "pl",
+  "швеция": "se",
+  "sweden": "se",
+  "норвегия": "no",
+  "norway": "no",
+  "сша": "us",
+  "usa": "us",
+  "united states": "us",
+  "великобритания": "gb",
+  "united kingdom": "gb",
+  "uk": "gb",
+  "турция": "tr",
+  "turkey": "tr",
+  "япония": "jp",
+  "japan": "jp",
+};
 
 function showScreen(name) {
   screens.forEach((screen) => screen.classList.toggle("active", screen.dataset.screen === name));
@@ -45,14 +76,29 @@ function flagEmojiToCode(flag) {
   return points.map((point) => String.fromCharCode(point - 0x1f1e6 + 65)).join("").toLowerCase();
 }
 
+function countryCodeFromRoute(route) {
+  const emojiCode = flagEmojiToCode(route?.flag);
+  if (emojiCode) return emojiCode;
+  const explicitCode = String(route?.countryCode || route?.code || "").trim().toLowerCase();
+  if (/^[a-z]{2}$/.test(explicitCode)) return explicitCode;
+  const haystack = `${route?.name || ""} ${route?.detail || ""}`.toLowerCase();
+  for (const [name, code] of Object.entries(COUNTRY_CODE_BY_NAME)) {
+    if (haystack.includes(name)) return code;
+  }
+  const codeMatch = haystack.match(/(?:^|[^a-z])([a-z]{2})(?:[^a-z]|$)/);
+  return codeMatch ? codeMatch[1] : "";
+}
+
 function cleanName(route) {
   return String(route?.name || "Сервер").replace(route?.flag || "", "").trim() || "Сервер";
 }
 
 function flagMarkup(route) {
-  const code = flagEmojiToCode(route?.flag);
-  if (code) return `<img class="flag-svg" src="flags/4x3/${code}.svg" alt="${cleanName(route)}">`;
-  return route?.flag || "🌐";
+  const code = countryCodeFromRoute(route);
+  if (code) {
+    return `<img class="flag-svg" draggable="false" src="flags/4x3/${code}.svg" alt="${cleanName(route)}" onerror="this.replaceWith(document.createTextNode('🌐'))">`;
+  }
+  return "🌐";
 }
 
 function renderRoutes() {
@@ -92,10 +138,24 @@ function renderRoutes() {
   });
 }
 
+function updatePhase(text) {
+  if (nodes.connectionPhase) nodes.connectionPhase.textContent = text;
+  if (nodes.connectionPhaseOn) nodes.connectionPhaseOn.textContent = text;
+}
+
 function setSelected(next) {
+  if (!routes.length) return;
   selectedIndex = (next + routes.length) % routes.length;
   renderRoutes();
   if (bridge?.setSelectedIndex) bridge.setSelectedIndex(selectedIndex);
+}
+
+function startAutoConnect() {
+  if (bridge?.autoConnectVpn) {
+    bridge.autoConnectVpn();
+    return;
+  }
+  bridge?.connectVpn?.();
 }
 
 function showPower(node) {
@@ -109,12 +169,21 @@ function setVpnState(payload = {}) {
   connected = Boolean(payload.connected);
   nodes.powerButton?.classList.toggle("connecting", busy);
   nodes.powerButtonOn?.classList.toggle("connecting", busy);
+  if (busy) {
+    showPower(payload.phase === "ping" ? nodes.loadingAnimation : nodes.onFirstAnimation);
+    showScreen("home-off");
+    updatePhase(payload.phase === "ping" ? "Пингуем серверы..." : "Подключаемся...");
+    renderRoutes();
+    return;
+  }
   if (connected) {
     showPower(nodes.vpnOnAsset);
     showScreen("home-on");
+    updatePhase("Подключено");
   } else {
     showPower(nodes.vpnOffAsset);
     showScreen(routes.length ? "home-off" : "auth");
+    updatePhase(routes.length ? "Готов к подключению" : "Ожидание доступа");
   }
   renderRoutes();
 }
@@ -165,8 +234,18 @@ function onBridgeEvent(type, payloadText) {
     renderRoutes();
     showScreen("ready");
   }
+  if (type === "routes_latency") {
+    routes = payload.routes || routes;
+    selectedIndex = Number.isInteger(payload.selectedIndex) ? payload.selectedIndex : selectedIndex;
+    renderRoutes();
+    updatePhase(payload.latencyMs >= 9999 ? "Нет ответа от серверов" : `Лучший сервер: ${payload.latencyMs} ms`);
+  }
   if (type === "vpn_status") setVpnState(payload);
-  if (type === "vpn_error") setStatus(payload.error || "Ошибка VPN");
+  if (type === "vpn_error") {
+    const error = payload.error || "Ошибка VPN";
+    setStatus(error);
+    updatePhase(error);
+  }
 }
 
 function bindUi() {
@@ -181,10 +260,13 @@ function bindUi() {
   document.getElementById("nextServer").addEventListener("click", () => setSelected(selectedIndex + 1));
   document.getElementById("prevServerOn").addEventListener("click", () => setSelected(selectedIndex - 1));
   document.getElementById("nextServerOn").addEventListener("click", () => setSelected(selectedIndex + 1));
-  nodes.powerButton.addEventListener("click", () => bridge?.connectVpn?.());
+  nodes.powerButton.addEventListener("click", startAutoConnect);
   nodes.powerButtonOn.addEventListener("click", () => bridge?.disconnectVpn?.());
-  document.getElementById("autoConnect").addEventListener("click", () => bridge?.connectVpn?.());
+  document.getElementById("autoConnect").addEventListener("click", startAutoConnect);
   document.getElementById("disconnectButton").addEventListener("click", () => bridge?.disconnectVpn?.());
+  document.querySelectorAll("img").forEach((image) => {
+    image.draggable = false;
+  });
 }
 
 function initBridge() {

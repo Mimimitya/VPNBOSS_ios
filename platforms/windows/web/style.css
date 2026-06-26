@@ -8,7 +8,7 @@
 body {
   display: flex;
   justify-content: center;
-  background: #fff;
+  background: var(--bg);
   color: var(--ink);
   overflow: hidden;
 }
@@ -17,7 +17,7 @@ body {
   position: relative;
   width: 100%;
   max-width: 430px;
-  min-height: 852px;
+  height: 852px;
   background: var(--bg);
   overflow: hidden;
 }
@@ -123,6 +123,12 @@ body {
   gap: 10px;
   font-size: 16px;
   margin-top: 28px;
+  transition: transform 160ms ease, opacity 160ms ease;
+}
+
+.telegram-button:active,
+.action-button:active {
+  transform: scale(0.985);
 }
 
 .telegram-button img {
@@ -151,6 +157,15 @@ body {
 .power-button:active,
 .power-button.connecting {
   transform: scale(0.985);
+}
+
+.power-button.connecting::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  box-shadow: 0 0 0 10px rgba(0, 0, 0, 0.05), 0 0 42px rgba(0, 0, 0, 0.22);
+  animation: pulse 900ms ease-in-out infinite;
 }
 
 .power-asset {
@@ -230,6 +245,15 @@ body {
   font-size: 14px;
 }
 
+.connection-phase {
+  min-height: 22px;
+  margin: 18px 0 0;
+  text-align: center;
+  color: #000;
+  font-size: 15px;
+  font-weight: 700;
+}
+
 .action-button {
   position: absolute;
   left: 21px;
@@ -242,4 +266,9 @@ body {
 
 .action-button.active {
   background: #27070f;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.45; transform: scale(0.98); }
+  50% { opacity: 1; transform: scale(1.03); }
 }

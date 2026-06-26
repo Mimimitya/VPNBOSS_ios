@@ -1013,12 +1013,47 @@ class DesktopBridge(QObject):
             return None
         return self.configs[idx]
 
+    def _routes_payload(self) -> list[dict[str, Any]]:
+        return [{k: v for k, v in route.items() if k != "config_index"} for route in self.routes]
+
+    def _measure_config_latency(self, entry: ConfigEntry, timeout: float = 2.4) -> int:
+        started = time.perf_counter()
+        try:
+            with socket.create_connection((entry.host, entry.port), timeout=timeout):
+                return max(1, int((time.perf_counter() - started) * 1000))
+        except OSError:
+            return 9999
+
+    def _select_fastest_route_worker(self) -> dict[str, Any]:
+        if not self.configs or not self.routes:
+            raise SubscriptionError("Нет серверов для проверки.")
+        latency_by_config: dict[int, int] = {}
+        for idx, entry in enumerate(self.configs):
+            latency_by_config[idx] = self._measure_config_latency(entry)
+        best_route_index = 0
+        best_latency = 9999
+        for route_index, route in enumerate(self.routes):
+            config_index = int(route.get("config_index", 0))
+            latency = latency_by_config.get(config_index, 9999)
+            route["latencyMs"] = latency
+            route["detail"] = "нет ответа" if latency >= 9999 else f"{latency} ms • маршрут скрыт"
+            if latency < best_latency:
+                best_latency = latency
+                best_route_index = route_index
+        self.selected_index = best_route_index
+        self.store.set_selected_index(best_route_index)
+        return {
+            "routes": self._routes_payload(),
+            "selectedIndex": best_route_index,
+            "latencyMs": best_latency,
+        }
+
     @Slot(result=str)
     def loadInitialState(self) -> str:
         payload = {
             "onboardingDone": bool(self.store.state.get("onboarding_done", False)),
             "subscriptionUrl": self.store.state.get("subscription_url", ""),
-            "routes": [{k: v for k, v in route.items() if k != "config_index"} for route in self.routes],
+            "routes": self._routes_payload(),
             "selectedIndex": self.selected_index,
             "connected": self.connected,
             "busy": self.busy,
@@ -1150,7 +1185,7 @@ class DesktopBridge(QObject):
             payload.update(
                 {
                     "subscriptionUrl": self.store.state.get("subscription_url", ""),
-                    "routes": [{k: v for k, v in route.items() if k != "config_index"} for route in self.routes],
+                    "routes": self._routes_payload(),
                     "selectedIndex": self.selected_index,
                     "hasSubscription": True,
                 }
@@ -1286,10 +1321,27 @@ class DesktopBridge(QObject):
             "subscription_import_success",
             {
                 "subscriptionUrl": self.store.state.get("subscription_url", ""),
-                "routes": [{k: v for k, v in route.items() if k != "config_index"} for route in self.routes],
+                "routes": self._routes_payload(),
                 "selectedIndex": self.selected_index,
             },
         )
+
+    @Slot()
+    def autoConnectVpn(self) -> None:
+        if self.busy:
+            return
+        self.busy = True
+        self._emit("vpn_status", {"busy": True, "connected": self.connected, "phase": "ping"})
+        task = Task(self._select_fastest_route_worker)
+        task.signals.finished.connect(lambda result: self._invoke_on_main(self._on_fastest_route_selected, result))
+        task.signals.failed.connect(lambda message: self._invoke_on_main(self._on_connect_failed, message))
+        self._track_task(task)
+
+    def _on_fastest_route_selected(self, result: object) -> None:
+        payload = dict(result or {})
+        self._emit("routes_latency", payload)
+        self.busy = False
+        self.connectVpn()
 
     @Slot()
     def connectVpn(self) -> None:
@@ -1300,7 +1352,7 @@ class DesktopBridge(QObject):
             self._emit("vpn_error", {"error": "Сначала импортируйте подписку и выберите маршрут."})
             return
         self.busy = True
-        self._emit("vpn_status", {"busy": True, "connected": self.connected})
+        self._emit("vpn_status", {"busy": True, "connected": self.connected, "phase": "connect"})
         task = Task(self.xray.start, entry)
         task.signals.finished.connect(lambda external_ip: self._invoke_on_main(self._on_connected, external_ip))
         task.signals.failed.connect(lambda message: self._invoke_on_main(self._on_connect_failed, message))
@@ -1358,8 +1410,7 @@ class MainWindow(QMainWindow):
         super().__init__()
         ensure_dirs()
         self.setWindowTitle(APP_NAME)
-        self.setMinimumSize(520, 1120)
-        self.resize(560, 1180)
+        self.setFixedSize(430, 852)
         self.view = QWebEngineView(self)
         self.setCentralWidget(self.view)
         self.bridge = DesktopBridge()
