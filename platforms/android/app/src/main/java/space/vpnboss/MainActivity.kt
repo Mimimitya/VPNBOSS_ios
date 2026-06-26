@@ -28,6 +28,8 @@ import com.github.tfox.flutter_vless.xray.service.XrayVPNService
 import com.github.tfox.flutter_vless.xray.utils.AppConfigs
 import java.net.InetSocketAddress
 import java.net.Socket
+import org.json.JSONArray
+import org.json.JSONObject
 import kotlin.concurrent.thread
 
 class MainActivity : Activity() {
@@ -46,6 +48,7 @@ class MainActivity : Activity() {
         super.onCreate(savedInstanceState)
         api.token = prefs.getString("token", "").orEmpty()
         selected = prefs.getInt("selected", 0)
+        routes = loadCachedRoutes()
         render()
         if (api.token.isNotBlank()) refreshRoutes()
     }
@@ -63,6 +66,7 @@ class MainActivity : Activity() {
         val page = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(24), dp(22), dp(24), dp(26))
+            setBackgroundColor(PAPER)
         }
         root.addView(page, FrameLayout.LayoutParams(-1, -1))
         page.addView(header())
@@ -101,17 +105,14 @@ class MainActivity : Activity() {
     }
 
     private fun renderHome(page: LinearLayout) {
-        val route = routes.getOrNull(selected.coerceIn(routes.indices))
+        val route = routeAt(selected)
         page.addView(space(0, 0), LinearLayout.LayoutParams(1, 0, .35f))
 
         val powerWrap = FrameLayout(this)
         val halo = View(this).apply { background = circle(if (connected) 0x16000000 else 0x0A000000) }
-        val power = TextView(this).apply {
-            text = "⏻"
-            textSize = 88f
-            gravity = Gravity.CENTER
-            setTextColor(if (connected) Color.WHITE else INK)
-            background = circle(if (connected) INK else Color.WHITE, if (connected) INK else 0x22000000)
+        val power = ImageView(this).apply {
+            setImageResource(if (connected) R.drawable.vpn_on else R.drawable.vpn_off)
+            scaleType = ImageView.ScaleType.FIT_CENTER
             elevation = dp(connected.compareTo(false) * 10).toFloat()
             setOnClickListener { connectSelected() }
         }
@@ -132,30 +133,73 @@ class MainActivity : Activity() {
             }
         }
 
-        page.addView(label(when { connecting -> "ПОДКЛЮЧАЕМ"; connected -> "ЗАЩИЩЕНО"; else -> "НЕ ПОДКЛЮЧЕНО" }, 11, MUTED, true).apply { gravity = Gravity.CENTER })
-        page.addView(label(when { connecting -> "Проверяем маршрут…"; connected -> route?.name ?: "VPNBOSS"; else -> "Коснитесь кнопки" }, 23, INK, true).apply { gravity = Gravity.CENTER }, lp(top = 8))
+        page.addView(label(if (connected) "VPNBOSS включён" else "Выберите локацию сервера", 16, INK, false).apply { gravity = Gravity.CENTER })
 
-        val serverCard = LinearLayout(this).apply {
+        val carousel = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-            setPadding(dp(18), 0, dp(16), 0)
-            background = rounded(Color.WHITE, 8, 0x18000000)
-            elevation = dp(2).toFloat()
-            setOnClickListener { showServers() }
+            gravity = Gravity.CENTER
         }
-        serverCard.addView(label(route?.flag ?: "🌐", 28, INK, false), LinearLayout.LayoutParams(dp(46), -2))
-        val serverText = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-        serverText.addView(label(route?.name ?: "Серверы загружаются", 16, INK, true))
-        serverText.addView(label(route?.location ?: "Проверьте подписку", 12, MUTED, false), lp(top = 3))
-        serverCard.addView(serverText, LinearLayout.LayoutParams(0, -2, 1f))
-        serverCard.addView(label("⌄", 24, INK, false).apply { gravity = Gravity.CENTER })
-        page.addView(serverCard, lp(top = 28, height = 76))
+        carousel.addView(label("‹", 43, INK, false).apply {
+            gravity = Gravity.CENTER
+            setOnClickListener { changeServer(-1) }
+        }, LinearLayout.LayoutParams(dp(46), dp(92)))
+        carousel.addView(flagBubble(routeAt(selected - 1)?.flag ?: "🌐", false), LinearLayout.LayoutParams(dp(58), dp(92)).apply { marginEnd = dp(17) })
+        carousel.addView(flagBubble(route?.flag ?: "🌐", true).apply { setOnClickListener { showServers() } }, LinearLayout.LayoutParams(dp(92), dp(92)))
+        carousel.addView(flagBubble(routeAt(selected + 1)?.flag ?: "🌐", false), LinearLayout.LayoutParams(dp(58), dp(92)).apply { marginStart = dp(17) })
+        carousel.addView(label("›", 43, INK, false).apply {
+            gravity = Gravity.CENTER
+            setOnClickListener { changeServer(1) }
+        }, LinearLayout.LayoutParams(dp(46), dp(92)))
+        page.addView(carousel, lp(top = 16, height = 92))
 
-        val action = if (connected) "ОТКЛЮЧИТЬ" else "ПОДКЛЮЧИТЬ ВЫБРАННЫЙ"
-        page.addView(primaryButton(action) { connectSelected() }, lp(top = 14, height = 56))
-        page.addView(secondaryButton("АВТОПОДКЛЮЧЕНИЕ") { connectAutomatic() }, lp(top = 10, height = 50))
-        page.addView(label("Автовыбор проверяет доступные маршруты и использует самый быстрый", 11, MUTED, false).apply { gravity = Gravity.CENTER }, lp(top = 12))
+        page.addView(label(route?.name ?: "Серверы загружаются", 22, INK, true).apply { gravity = Gravity.CENTER }, lp(top = 12))
+        page.addView(label(when {
+            connecting -> "Устанавливаем защищённый маршрут"
+            connected -> "Подключено · ${route?.detail ?: "VLESS Reality"}"
+            else -> route?.detail ?: "Ожидание подписки"
+        }, 13, MUTED, false).apply { gravity = Gravity.CENTER }, lp(top = 7))
+        page.addView(label(when { connecting -> "ПОДКЛЮЧЕНИЕ"; connected -> "ЗАЩИЩЕНО"; else -> "ГОТОВО К ПОДКЛЮЧЕНИЮ" }, 11, INK, true).apply { gravity = Gravity.CENTER }, lp(top = 12))
+
+        page.addView(primaryButton(if (connected) "ОТКЛЮЧИТЬ VPN" else "АВТОПОДКЛЮЧЕНИЕ") {
+            if (connected) stopVpn() else connectAutomatic()
+        }, lp(top = 18, height = 56))
         page.addView(space(0, 0), LinearLayout.LayoutParams(1, 0, .15f))
+    }
+
+    private fun routeAt(index: Int): RouteItem? {
+        if (routes.isEmpty()) return null
+        return routes[(index % routes.size + routes.size) % routes.size]
+    }
+
+    private fun changeServer(delta: Int) {
+        if (routes.isEmpty() || connecting || connected) return
+        selected = (selected + delta + routes.size) % routes.size
+        prefs.edit().putInt("selected", selected).apply()
+        render()
+    }
+
+    private fun flagBubble(flag: String, main: Boolean) = FrameLayout(this).apply {
+        background = circle(Color.WHITE, 0x14000000)
+        elevation = dp(if (main) 8 else 3).toFloat()
+        alpha = if (main) 1f else .56f
+        val drawable = when (flag) {
+            "🇩🇰" -> R.drawable.flag_dk
+            "🇩🇪" -> R.drawable.flag_de
+            "🇷🇺" -> R.drawable.flag_ru
+            "🇪🇸" -> R.drawable.flag_es
+            else -> 0
+        }
+        if (drawable != 0) {
+            addView(ImageView(this@MainActivity).apply {
+                setImageResource(drawable)
+                scaleType = ImageView.ScaleType.CENTER_CROP
+                clipToOutline = true
+                outlineProvider = android.view.ViewOutlineProvider.BACKGROUND
+                background = circle(Color.WHITE)
+            }, FrameLayout.LayoutParams(-1, -1))
+        } else {
+            addView(label("◎", if (main) 32 else 21, INK, true).apply { gravity = Gravity.CENTER }, FrameLayout.LayoutParams(-1, -1))
+        }
     }
 
     private fun startAuth() {
@@ -189,6 +233,7 @@ class MainActivity : Activity() {
         runCatching { api.loadRoutes() }
             .onSuccess { loaded -> handler.post {
                 routes = loaded
+                saveCachedRoutes(loaded)
                 selected = selected.coerceIn(0, (routes.size - 1).coerceAtLeast(0))
                 render()
             } }
@@ -348,6 +393,35 @@ class MainActivity : Activity() {
         Socket().use { socket -> socket.connect(InetSocketAddress(endpoint.host, endpoint.port), 1800) }
         System.currentTimeMillis() - started
     }.getOrDefault(-1L)
+
+    private fun saveCachedRoutes(items: List<RouteItem>) {
+        val payload = JSONArray()
+        items.forEach { route ->
+            payload.put(JSONObject()
+                .put("id", route.id)
+                .put("flag", route.flag)
+                .put("name", route.name)
+                .put("location", route.location)
+                .put("detail", route.detail)
+                .put("config", route.config))
+        }
+        prefs.edit().putString("routes", payload.toString()).apply()
+    }
+
+    private fun loadCachedRoutes(): List<RouteItem> = runCatching {
+        val payload = JSONArray(prefs.getString("routes", "[]"))
+        (0 until payload.length()).map { index ->
+            val route = payload.getJSONObject(index)
+            RouteItem(
+                route.optLong("id", index.toLong()),
+                route.optString("flag", "🌐"),
+                route.optString("name", "VPNBOSS"),
+                route.optString("location", ""),
+                route.optString("detail", "VLESS Reality"),
+                route.getString("config"),
+            )
+        }
+    }.getOrDefault(emptyList())
     private fun showError(message: String?) {
         handler.post { Toast.makeText(this, message ?: "Не удалось выполнить действие", Toast.LENGTH_LONG).show() }
     }

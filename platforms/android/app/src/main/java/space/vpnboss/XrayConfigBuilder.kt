@@ -36,12 +36,17 @@ object XrayConfigBuilder {
             .put("network", network)
             .put("security", security)
         if (security == "reality") {
-            stream.put("realitySettings", JSONObject()
+            val reality = JSONObject()
                 .put("serverName", uri.getQueryParameter("sni") ?: endpoint.host)
                 .put("fingerprint", uri.getQueryParameter("fp") ?: "chrome")
                 .put("publicKey", uri.getQueryParameter("pbk") ?: uri.getQueryParameter("pbK") ?: "")
                 .put("shortId", uri.getQueryParameter("sid") ?: "")
-                .put("spiderX", uri.getQueryParameter("spx") ?: "/"))
+                .put("spiderX", uri.getQueryParameter("spx") ?: "/")
+                .put("show", false)
+            uri.getQueryParameter("alpn")?.takeIf(String::isNotBlank)?.let {
+                reality.put("alpn", JSONArray(it.split(',').map(String::trim)))
+            }
+            stream.put("realitySettings", reality)
         } else if (security == "tls") {
             stream.put("tlsSettings", JSONObject()
                 .put("serverName", uri.getQueryParameter("sni") ?: endpoint.host)
@@ -56,6 +61,9 @@ object XrayConfigBuilder {
             "xhttp" -> stream.put("xhttpSettings", JSONObject()
                 .put("path", uri.getQueryParameter("path") ?: "/")
                 .put("host", uri.getQueryParameter("host") ?: ""))
+            "tcp" -> uri.getQueryParameter("headerType")?.takeIf(String::isNotBlank)?.let {
+                stream.put("tcpSettings", JSONObject().put("header", JSONObject().put("type", it)))
+            }
         }
 
         val proxy = JSONObject()
@@ -64,6 +72,7 @@ object XrayConfigBuilder {
             .put("settings", JSONObject().put("vnext", JSONArray().put(vnext)))
             .put("streamSettings", stream)
         val direct = JSONObject().put("tag", "direct").put("protocol", "freedom")
+            .put("settings", JSONObject().put("domainStrategy", "UseIP"))
         val block = JSONObject().put("tag", "block").put("protocol", "blackhole")
         val config = JSONObject()
             .put("log", JSONObject().put("loglevel", "warning"))
@@ -71,10 +80,16 @@ object XrayConfigBuilder {
             .put("outbounds", JSONArray().put(proxy).put(direct).put(block))
             .put("routing", JSONObject()
                 .put("domainStrategy", "IPIfNonMatch")
-                .put("rules", JSONArray().put(JSONObject()
-                    .put("type", "field")
-                    .put("ip", JSONArray().put("geoip:private"))
-                    .put("outboundTag", "direct"))))
+                .put("rules", JSONArray()
+                    .put(JSONObject()
+                        .put("type", "field")
+                        .put("ip", JSONArray().put("geoip:private").put("127.0.0.0/8"))
+                        .put("outboundTag", "direct"))
+                    .put(JSONObject()
+                        .put("type", "field")
+                        .put("network", "udp")
+                        .put("port", "443")
+                        .put("outboundTag", "block"))))
 
         return XrayConfig(
             CONNECTED_V2RAY_SERVER_ADDRESS = endpoint.host,

@@ -250,8 +250,12 @@ object XrayCoreManager {
         apiRule.put("type", "field")
         apiRule.put("inboundTag", JSONArray().put(apiInboundTag))
         apiRule.put("outboundTag", "api")
-        rules.put(apiRule)
-        routing.put("rules", rules)
+        // The API inbound targets 127.0.0.1 and must precede private-IP rules.
+        // Otherwise stats queries are sent to "direct", recurse through the
+        // local proxy and eventually exhaust the process file descriptors.
+        val orderedRules = JSONArray().put(apiRule)
+        for (index in 0 until rules.length()) orderedRules.put(rules.get(index))
+        routing.put("rules", orderedRules)
         configJson.put("routing", routing)
 
         return configJson
