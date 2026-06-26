@@ -1067,6 +1067,11 @@ class DesktopBridge(QObject):
         self.site_session_token = str(self.store.state.get("site_session_token", ""))
         self.site_profile = self.store.state.get("site_profile", {}) or {}
         self.auth_dialog: SiteAuthDialog | None = None
+        self.app_auth_code = ""
+        self.app_auth_checking = False
+        self.app_auth_timer = QTimer(self)
+        self.app_auth_timer.setInterval(2200)
+        self.app_auth_timer.timeout.connect(self._poll_app_auth)
         self._tasks: set[Task] = set()
         self.mainThreadInvoke.connect(self._run_main_thread_callback)
 
@@ -1357,16 +1362,51 @@ class DesktopBridge(QObject):
     @Slot()
     def startSiteAuth(self) -> None:
         debug_log("startSiteAuth called")
-        if self.auth_dialog is not None:
-            self.auth_dialog.raise_()
-            self.auth_dialog.activateWindow()
+        task = Task(site_api_request, "POST", "/api/app-auth/init")
+        task.signals.finished.connect(lambda result: self._invoke_on_main(self._on_app_auth_init, result))
+        task.signals.failed.connect(lambda message: self._invoke_on_main(self._emit_site_auth_error, message))
+        self._track_task(task)
+
+    def _on_app_auth_init(self, result: object) -> None:
+        payload = dict(result or {})
+        self.app_auth_code = str(payload.get("appCode") or "").strip()
+        auth_url = str(payload.get("authUrl") or SITE_AUTH_URL)
+        if not self.app_auth_code:
+            self._emit("site_auth_error", {"error": "Сайт не вернул код авторизации приложения."})
             return
-        self._emit("site_auth_init", {"openedLink": SITE_AUTH_URL})
-        dialog = SiteAuthDialog(QApplication.activeWindow())
-        self.auth_dialog = dialog
-        dialog.tokenCaptured.connect(self._finish_site_session_from_site_token)
-        dialog.finished.connect(lambda _: self._clear_auth_dialog())
-        dialog.show()
+        QDesktopServices.openUrl(QUrl(auth_url))
+        self._emit("site_auth_init", {"openedLink": auth_url})
+        self.app_auth_timer.start()
+
+    def _poll_app_auth(self) -> None:
+        if not self.app_auth_code or self.app_auth_checking:
+            return
+        self.app_auth_checking = True
+        task = Task(site_api_request, "GET", f"/api/app-auth/check/{self.app_auth_code}")
+        task.signals.finished.connect(lambda result: self._invoke_on_main(self._on_app_auth_check, result))
+        task.signals.failed.connect(lambda message: self._invoke_on_main(self._on_app_auth_error, message))
+        self._track_task(task)
+
+    def _on_app_auth_check(self, result: object) -> None:
+        self.app_auth_checking = False
+        payload = dict(result or {})
+        status = str(payload.get("status") or "pending")
+        if status == "pending":
+            self._emit("site_auth_poll", {"status": "pending"})
+            return
+        if status == "confirmed" and payload.get("token"):
+            self.app_auth_timer.stop()
+            self.app_auth_code = ""
+            self._emit("site_auth_poll", {"status": "confirmed"})
+            self._finish_site_session_from_auth({"token": str(payload.get("token"))})
+            return
+        self.app_auth_timer.stop()
+        self.app_auth_code = ""
+        self._emit("site_auth_error", {"error": "Авторизация приложения истекла. Откройте вход ещё раз."})
+
+    def _on_app_auth_error(self, message: str) -> None:
+        self.app_auth_checking = False
+        self._emit("site_auth_error", {"error": message})
 
     def _clear_auth_dialog(self) -> None:
         self.auth_dialog = None
