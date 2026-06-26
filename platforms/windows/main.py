@@ -237,11 +237,65 @@ def first_text_value(payload: dict[str, Any], keys: tuple[str, ...]) -> str:
     return ""
 
 
+def country_code_from_text(value: str) -> str:
+    for index in range(max(0, len(value) - 1)):
+        pair = value[index:index + 2]
+        if is_flag_sequence(pair):
+            return flag_to_country_code(pair)
+    lowered = value.lower()
+    known = {
+        "дания": "dk",
+        "denmark": "dk",
+        "германия": "de",
+        "germany": "de",
+        "испания": "es",
+        "spain": "es",
+        "финляндия": "fi",
+        "finland": "fi",
+        "нидерланды": "nl",
+        "netherlands": "nl",
+        "россия": "ru",
+        "russia": "ru",
+        "сша": "us",
+        "usa": "us",
+        "united states": "us",
+    }
+    return next((code for name, code in known.items() if name in lowered), "")
+
+
+def strip_flag_text(value: str) -> str:
+    text = strip_variation(value)
+    for index in range(max(0, len(text) - 1)):
+        pair = text[index:index + 2]
+        if is_flag_sequence(pair):
+            text = text.replace(pair, " ")
+            break
+    return re.sub(r"\s{2,}", " ", text.replace("||", " ")).strip(" -|_")
+
+
 def enrich_config_from_api(entry: ConfigEntry, payload: dict[str, Any]) -> ConfigEntry:
+    server = payload.get("server") if isinstance(payload.get("server"), dict) else {}
+    server_location = first_text_value(server, ("location", "country", "region"))
+    server_name = first_text_value(server, ("name", "displayName", "title"))
     flag = first_text_value(payload, ("flag", "emoji", "countryFlag")) or entry.flag or ""
-    name = first_text_value(payload, ("name", "displayName", "title", "server", "location", "country", "region"))
+    if not flag and server_location:
+        for index in range(max(0, len(server_location) - 1)):
+            pair = server_location[index:index + 2]
+            if is_flag_sequence(pair):
+                flag = pair
+                break
+    name = first_text_value(payload, ("name", "displayName", "title", "location", "country", "region"))
+    if server_name or server_location:
+        clean_location = strip_flag_text(server_location)
+        name = " ".join(part for part in (server_name, clean_location) if part).strip()
     country_code = first_text_value(payload, ("countryCode", "country_code", "code", "iso", "iso2")).lower()
+    if not country_code:
+        country_code = first_text_value(server, ("countryCode", "country_code", "code", "iso", "iso2")).lower()
     detail = first_text_value(payload, ("detail", "description", "protocol"))
+    if not detail and server:
+        security = first_text_value(server, ("security",)) or entry.query.get("security", "reality")
+        network = first_text_value(server, ("network",)) or entry.query.get("type", "tcp")
+        detail = f"{security.upper()} • {network.upper()} • маршрут скрыт"
     if name:
         entry.api_name = name.replace(flag, "").strip() or name
         entry.display_name = entry.api_name
@@ -249,6 +303,8 @@ def enrich_config_from_api(entry: ConfigEntry, payload: dict[str, Any]) -> Confi
         entry.flag = flag
     if not country_code:
         country_code = flag_to_country_code(entry.flag)
+    if not country_code and server_location:
+        country_code = country_code_from_text(server_location)
     if country_code:
         entry.country_code = country_code
     if detail:
