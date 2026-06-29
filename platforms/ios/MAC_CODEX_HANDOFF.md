@@ -17,6 +17,99 @@
 - выбор сервера кнопками и свайпом;
 - публикация тестовой сборки в TestFlight.
 
+## Инфраструктура VPNBOSS
+
+### Основной сервер
+
+- IP: `92.113.147.193`
+- SSH user: `ElValleChat`
+- Рабочая папка: `/home/ElValleChat/vpn-boss-bot`
+- Сайт и API: `/home/ElValleChat/vpn-boss-bot/site.js`
+- Telegram-бот: `/home/ElValleChat/vpn-boss-bot/index.js`
+- SQLite: `/home/ElValleChat/vpn-boss-bot/vpn.db`
+- PM2-процесс сайта: `site`
+- PM2-процесс бота: `vpnbot`
+- Внутренний порт сайта: `6760`
+
+SSH-ключ и пароль нельзя добавлять в GitHub или вставлять в этот документ. На Windows доступ хранится отдельно в:
+
+`ops/vps-ssh.json`
+
+Этот файл нужно перенести на Mac отдельно защищённым способом и сохранить вне репозитория, например:
+
+`~/.config/vpnboss/vps-ssh.json`
+
+После переноса ограничить права:
+
+```bash
+chmod 600 ~/.config/vpnboss/vps-ssh.json
+```
+
+### Сайт
+
+- Публичный адрес: `https://vpnboss.space`
+- API base URL: `https://vpnboss.space/api`
+- Кабинет: `https://vpnboss.space/cabinet`
+- Авторизация приложения открывает `https://vpnboss.space/auth?appCode=...`
+
+Основные endpoint приложения:
+
+- `POST /api/app-auth/init`
+- `GET /api/app-auth/check/:code`
+- `GET /api/auth/me`
+- `POST /api/auth/complete-profile`
+- `POST /api/trial/activate`
+- `GET /api/connect/configs`
+
+`POST /api/trial/activate` уже развёрнут на сервере. Он проверяет профиль и `trial_used`, затем атомарно создаёт trial на 5 дней, 75 ГБ и 3 устройства. Повторная выдача одному пользователю запрещена сервером.
+
+### Telegram-бот
+
+- Username: `@Vpnboss_robot`
+- Ссылка: `https://t.me/Vpnboss_robot`
+- PM2-процесс: `vpnbot`
+- Entry point: `/home/ElValleChat/vpn-boss-bot/index.js`
+
+Бот и сайт используют одну SQLite-базу. Изменения подписок должны оставаться совместимыми между `site.js`, `index.js`, `database.js` и `config.js`.
+
+### Subscription service
+
+- Публичная база subscription links: `https://sekretnik1.vps.webdock.cloud`
+- Приложение получает конкретный `subUrl` только от авторизованного `/api/connect/configs`.
+- Нельзя встраивать общий subscription token или VLESS-ключ в исходный код приложения.
+
+### Подключение по SSH на Mac
+
+Из JSON нужно извлечь `privateKey` в локальный файл, не печатая ключ в терминал или логи. После этого:
+
+```bash
+chmod 600 ~/.ssh/vpnboss_denmark
+ssh -i ~/.ssh/vpnboss_denmark ElValleChat@92.113.147.193
+```
+
+Диагностика процессов:
+
+```bash
+cd /home/ElValleChat/vpn-boss-bot
+pm2 list
+pm2 logs site --lines 100
+pm2 logs vpnbot --lines 100
+curl -fsS http://127.0.0.1:6760/api/plans
+```
+
+Безопасная выкладка `site.js`:
+
+```bash
+cd /home/ElValleChat/vpn-boss-bot
+cp site.js "site.js.bak-$(date +%Y%m%d-%H%M%S)"
+node --check site.js
+pm2 restart site --update-env
+pm2 show site
+curl -fsS -o /dev/null -w '%{http_code}\n' http://127.0.0.1:6760/api/plans
+```
+
+Для бота аналогично использовать резервную копию, `node --check index.js` и `pm2 restart vpnbot --update-env`. Не перезапускать `index`, `backhome` или другие процессы: они не относятся к этому приложению.
+
 ## Что уже реализовано
 
 - SwiftUI-интерфейс в стиле Android-версии.
@@ -151,5 +244,5 @@ open VPNBOSS.xcodeproj
 ## Готовый промпт для Codex на Mac
 
 ```text
-Продолжи разработку VPNBOSS iOS из текущего репозитория. Сначала полностью прочитай platforms/ios/MAC_CODEX_HANDOFF.md, затем проверь git status и открой проект через platforms/ios/OPEN_IN_XCODE.command. Собери схему VPNBOSS и исправь все реальные ошибки компиляции, Swift Package Manager, подписи и Packet Tunnel extension. Не меняй существующий дизайн без необходимости. После успешной сборки запусти приложение на физическом iPhone и проверь полный сценарий: web-авторизация, обязательные email/пароль, автоматический trial 5 дней, загрузка всех VLESS Reality-серверов, свайп карусели, подключение выбранного сервера, настоящий системный VPN, изменение внешнего IP, DNS и отключение. Реализуй настоящий ping для кнопки лучшего сервера, перенеси токен в Keychain и добавь RU/EN/ES локализации. Не считай работу завершённой без фактической проверки на устройстве. Не публикуй секреты и не меняй серверные данные без резервной копии.
+Продолжи разработку VPNBOSS iOS из текущего репозитория. Сначала полностью прочитай platforms/ios/MAC_CODEX_HANDOFF.md, включая раздел инфраструктуры с сервером 92.113.147.193, сайтом vpnboss.space и ботом @Vpnboss_robot. Затем проверь git status и открой проект через platforms/ios/OPEN_IN_XCODE.command. Собери схему VPNBOSS и исправь все реальные ошибки компиляции, Swift Package Manager, подписи и Packet Tunnel extension. Не меняй существующий дизайн без необходимости. После успешной сборки запусти приложение на физическом iPhone и проверь полный сценарий: web-авторизация, обязательные email/пароль, автоматический trial 5 дней, загрузка всех VLESS Reality-серверов, свайп карусели, подключение выбранного сервера, настоящий системный VPN, изменение внешнего IP, DNS и отключение. Реализуй настоящий ping для кнопки лучшего сервера, перенеси токен в Keychain и добавь RU/EN/ES локализации. Для SSH используй только отдельно переданный ~/.config/vpnboss/vps-ssh.json, никогда не добавляй его в Git. Перед изменением site.js или index.js обязательно делай резервную копию и node --check. Не считай работу завершённой без фактической проверки на устройстве.
 ```
