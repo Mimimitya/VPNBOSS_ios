@@ -18,6 +18,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.Window
 import android.view.animation.AccelerateDecelerateInterpolator
+import android.view.animation.DecelerateInterpolator
 import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
@@ -43,6 +44,7 @@ class MainActivity : Activity() {
     private var autoConnect = false
     private lateinit var root: FrameLayout
     private var pulse: AnimatorSet? = null
+    private var playFirstConnectAnimation = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -72,6 +74,7 @@ class MainActivity : Activity() {
         page.addView(header())
         if (api.token.isBlank()) renderAuth(page) else renderHome(page)
         setContentView(root)
+        animateEntrance(page)
     }
 
     private fun header(): View = LinearLayout(this).apply {
@@ -81,12 +84,12 @@ class MainActivity : Activity() {
             scaleType = ImageView.ScaleType.FIT_START
             adjustViewBounds = true
         }, LinearLayout.LayoutParams(dp(172), dp(44)))
-        addView(TextView(this@MainActivity).apply {
-            text = if (api.token.isBlank()) "SECURE CLIENT" else "ONLINE"
-            textSize = 10f
-            setTextColor(MUTED)
-            gravity = Gravity.END
-            typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
+        addView(LinearLayout(this@MainActivity).apply {
+            gravity = Gravity.END or Gravity.CENTER_VERTICAL
+            addView(View(this@MainActivity).apply {
+                background = circle(if (connected) 0xFF111111.toInt() else 0xFFB9B9B5.toInt())
+            }, LinearLayout.LayoutParams(dp(7), dp(7)).apply { marginEnd = dp(7) })
+            addView(label(if (connected) "Подключено" else "VPNBOSS", 11, MUTED, true))
         }, LinearLayout.LayoutParams(0, dp(44), 1f))
     }
 
@@ -106,19 +109,29 @@ class MainActivity : Activity() {
 
     private fun renderHome(page: LinearLayout) {
         val route = routeAt(selected)
-        page.addView(space(0, 0), LinearLayout.LayoutParams(1, 0, .35f))
+        page.addView(space(0, 0), LinearLayout.LayoutParams(1, dp(34)))
 
         val powerWrap = FrameLayout(this)
         val halo = View(this).apply { background = circle(if (connected) 0x16000000 else 0x0A000000) }
-        val power = ImageView(this).apply {
-            setImageResource(if (connected) R.drawable.vpn_on else R.drawable.vpn_off)
-            scaleType = ImageView.ScaleType.FIT_CENTER
+        val power = PowerButtonView(this).apply {
+            setState(when {
+                connecting -> PowerButtonView.State.CONNECTING
+                connected -> PowerButtonView.State.ON
+                else -> PowerButtonView.State.OFF
+            }, playFirstConnectAnimation)
+            playFirstConnectAnimation = false
             elevation = dp(connected.compareTo(false) * 10).toFloat()
-            setOnClickListener { connectSelected() }
+            contentDescription = if (connected) "Отключить VPN" else "Подключить выбранный сервер"
+            setOnClickListener {
+                animate().scaleX(.92f).scaleY(.92f).setDuration(90).withEndAction {
+                    animate().scaleX(1f).scaleY(1f).setDuration(220).setInterpolator(DecelerateInterpolator()).start()
+                    connectSelected()
+                }.start()
+            }
         }
-        powerWrap.addView(halo, FrameLayout.LayoutParams(dp(236), dp(236), Gravity.CENTER))
-        powerWrap.addView(power, FrameLayout.LayoutParams(dp(174), dp(174), Gravity.CENTER))
-        page.addView(powerWrap, lp(height = 250))
+        powerWrap.addView(halo, FrameLayout.LayoutParams(dp(234), dp(234), Gravity.CENTER))
+        powerWrap.addView(power, FrameLayout.LayoutParams(dp(210), dp(210), Gravity.CENTER))
+        page.addView(powerWrap, lp(height = 246))
 
         if (connecting) {
             pulse = AnimatorSet().apply {
@@ -133,7 +146,11 @@ class MainActivity : Activity() {
             }
         }
 
-        page.addView(label(if (connected) "VPNBOSS включён" else "Выберите локацию сервера", 16, INK, false).apply { gravity = Gravity.CENTER })
+        page.addView(label(when {
+            connecting -> "Устанавливаем соединение"
+            connected -> "VPNBOSS включён"
+            else -> "Выберите локацию сервера"
+        }, 15, INK, true).apply { gravity = Gravity.CENTER })
 
         val carousel = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
@@ -143,9 +160,9 @@ class MainActivity : Activity() {
             gravity = Gravity.CENTER
             setOnClickListener { changeServer(-1) }
         }, LinearLayout.LayoutParams(dp(46), dp(92)))
-        carousel.addView(flagBubble(routeAt(selected - 1)?.flag ?: "🌐", false), LinearLayout.LayoutParams(dp(58), dp(92)).apply { marginEnd = dp(17) })
+        carousel.addView(flagBubble(routeAt(selected - 1)?.flag ?: "🌐", false), LinearLayout.LayoutParams(dp(58), dp(58)).apply { marginEnd = dp(17) })
         carousel.addView(flagBubble(route?.flag ?: "🌐", true).apply { setOnClickListener { showServers() } }, LinearLayout.LayoutParams(dp(92), dp(92)))
-        carousel.addView(flagBubble(routeAt(selected + 1)?.flag ?: "🌐", false), LinearLayout.LayoutParams(dp(58), dp(92)).apply { marginStart = dp(17) })
+        carousel.addView(flagBubble(routeAt(selected + 1)?.flag ?: "🌐", false), LinearLayout.LayoutParams(dp(58), dp(58)).apply { marginStart = dp(17) })
         carousel.addView(label("›", 43, INK, false).apply {
             gravity = Gravity.CENTER
             setOnClickListener { changeServer(1) }
@@ -158,12 +175,32 @@ class MainActivity : Activity() {
             connected -> "Подключено · ${route?.detail ?: "VLESS Reality"}"
             else -> route?.detail ?: "Ожидание подписки"
         }, 13, MUTED, false).apply { gravity = Gravity.CENTER }, lp(top = 7))
-        page.addView(label(when { connecting -> "ПОДКЛЮЧЕНИЕ"; connected -> "ЗАЩИЩЕНО"; else -> "ГОТОВО К ПОДКЛЮЧЕНИЮ" }, 11, INK, true).apply { gravity = Gravity.CENTER }, lp(top = 12))
+        page.addView(label(when { connecting -> "ПОДКЛЮЧАЕМ"; connected -> "СОЕДИНЕНИЕ ЗАЩИЩЕНО"; else -> "КРУГ ПОДКЛЮЧАЕТ ВЫБРАННЫЙ СЕРВЕР" }, 10, INK, true).apply {
+            gravity = Gravity.CENTER
+            background = rounded(0xFFE8E8E5.toInt(), 7)
+            setPadding(dp(12), dp(8), dp(12), dp(8))
+        }, lp(top = 12))
 
-        page.addView(primaryButton(if (connected) "ОТКЛЮЧИТЬ VPN" else "АВТОПОДКЛЮЧЕНИЕ") {
+        page.addView(primaryButton(if (connected) "ОТКЛЮЧИТЬ" else "НАЙТИ ЛУЧШИЙ СЕРВЕР") {
             if (connected) stopVpn() else connectAutomatic()
         }, lp(top = 18, height = 56))
         page.addView(space(0, 0), LinearLayout.LayoutParams(1, 0, .15f))
+    }
+
+    private fun animateEntrance(page: LinearLayout) {
+        for (index in 0 until page.childCount) {
+            page.getChildAt(index).apply {
+                alpha = 0f
+                translationY = dp(if (index < 2) 8 else 14).toFloat()
+                animate()
+                    .alpha(1f)
+                    .translationY(0f)
+                    .setStartDelay((index * 32L).coerceAtMost(190L))
+                    .setDuration(280)
+                    .setInterpolator(DecelerateInterpolator())
+                    .start()
+            }
+        }
     }
 
     private fun routeAt(index: Int): RouteItem? {
@@ -173,9 +210,18 @@ class MainActivity : Activity() {
 
     private fun changeServer(delta: Int) {
         if (routes.isEmpty() || connecting || connected) return
-        selected = (selected + delta + routes.size) % routes.size
-        prefs.edit().putInt("selected", selected).apply()
-        render()
+        root.animate()
+            .alpha(.35f)
+            .translationX(dp(-delta * 16).toFloat())
+            .setDuration(110)
+            .withEndAction {
+                selected = (selected + delta + routes.size) % routes.size
+                prefs.edit().putInt("selected", selected).apply()
+                render()
+                root.translationX = dp(delta * 16).toFloat()
+                root.alpha = .35f
+                root.animate().alpha(1f).translationX(0f).setDuration(210).setInterpolator(DecelerateInterpolator()).start()
+            }.start()
     }
 
     private fun flagBubble(flag: String, main: Boolean) = FrameLayout(this).apply {
@@ -264,7 +310,7 @@ class MainActivity : Activity() {
                 gravity = Gravity.CENTER_VERTICAL
                 setPadding(dp(14), 0, dp(14), 0)
                 background = rounded(if (index == selected) 0xFFEAEAEA.toInt() else Color.WHITE, 7)
-                addView(label(route.flag, 25, INK, false), LinearLayout.LayoutParams(dp(44), -2))
+                addView(flagBubble(route.flag, false), LinearLayout.LayoutParams(dp(42), dp(42)).apply { marginEnd = dp(12) })
                 addView(label(route.name, 15, INK, true), LinearLayout.LayoutParams(0, -2, 1f))
                 addView(label(if (index == selected) "●" else "○", 15, INK, false))
                 setOnClickListener {
@@ -328,6 +374,7 @@ class MainActivity : Activity() {
         handler.postDelayed({
             connecting = false
             connected = AppConfigs.V2RAY_STATE == AppConfigs.V2RAY_STATES.V2RAY_CONNECTED
+            playFirstConnectAnimation = connected
             render()
             if (!connected) showError("Не удалось запустить VPN-туннель. Проверьте конфигурацию сервера.")
         }, 1_500)
@@ -351,7 +398,7 @@ class MainActivity : Activity() {
 
     private fun primaryButton(text: String, action: () -> Unit) = label(text, 14, Color.WHITE, true).apply {
         gravity = Gravity.CENTER
-        background = rounded(INK, 7)
+        background = rounded(INK, 28)
         setOnClickListener { animate().scaleX(.97f).scaleY(.97f).setDuration(80).withEndAction {
             animate().scaleX(1f).scaleY(1f).setDuration(130).start(); action()
         }.start() }

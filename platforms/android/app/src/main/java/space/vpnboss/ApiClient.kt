@@ -85,6 +85,9 @@ class ApiClient(private val baseUrl: String = "https://vpnboss.space") {
         val fragment = URLDecoder.decode(uri.fragment ?: uri.host ?: "VPNBOSS", "UTF-8")
         val flag = extractFlag(fragment).ifBlank { flagFor(fragment, uri.host.orEmpty()) }
         val name = cleanName(fragment, flag)
+            .replace(Regex("(?i)\\s*\\|\\s*iPhone\\s*"), "")
+            .replace(Regex("\\s+"), " ")
+            .trim()
         RouteItem(
             id = index.toLong(),
             flag = flag,
