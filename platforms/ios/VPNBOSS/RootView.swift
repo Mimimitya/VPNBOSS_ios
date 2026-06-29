@@ -4,6 +4,10 @@ struct RootView: View {
     @EnvironmentObject private var session: AppSession
     @State private var showCabinet = false
     @State private var showServers = false
+    @State private var onboardingEmail = ""
+    @State private var onboardingPassword = ""
+    @State private var onboardingConfirmation = ""
+    @GestureState private var carouselDrag: CGFloat = 0
 
     private let paper = Color(red: 246 / 255, green: 246 / 255, blue: 244 / 255)
 
@@ -20,6 +24,7 @@ struct RootView: View {
 
             if showCabinet { cabinetOverlay }
             if showServers { serverOverlay }
+            if session.needsProfileCompletion { profileCompletionOverlay }
         }
         .tint(.black)
         .alert("VPNBOSS", isPresented: $session.showError) {
@@ -94,6 +99,16 @@ struct RootView: View {
             }
             .frame(height: 92)
             .padding(.top, 16)
+            .contentShape(Rectangle())
+            .offset(x: carouselDrag * 0.35)
+            .gesture(
+                DragGesture(minimumDistance: 18)
+                    .updating($carouselDrag) { value, state, _ in state = value.translation.width }
+                    .onEnded { value in
+                        guard abs(value.translation.width) > 36 else { return }
+                        session.changeServer(value.translation.width < 0 ? 1 : -1)
+                    }
+            )
             .animation(.spring(response: 0.28, dampingFraction: 0.82), value: session.selected)
 
             Text(current.name)
@@ -174,6 +189,60 @@ struct RootView: View {
             }.frame(maxHeight: 330).padding(.top, 18)
             OutlineButton(title: "ЗАКРЫТЬ") { showServers = false }.padding(.top, 12)
         }
+    }
+
+    private var profileCompletionOverlay: some View {
+        ModalBackdrop {
+            Text("Завершите регистрацию")
+                .font(.system(size: 24, weight: .bold))
+                .frame(maxWidth: .infinity, alignment: .leading)
+            Text("Укажите email и придумайте пароль. После этого мы сразу подарим вам 5 дней VPNBOSS.")
+                .font(.system(size: 14))
+                .foregroundStyle(Color(white: 0.32))
+                .lineSpacing(3)
+                .padding(.top, 10)
+
+            TextField("Email", text: $onboardingEmail)
+                .textInputAutocapitalization(.never)
+                .keyboardType(.emailAddress)
+                .autocorrectionDisabled()
+                .textContentType(.emailAddress)
+                .modifier(ProfileFieldStyle())
+                .padding(.top, 20)
+            SecureField("Пароль", text: $onboardingPassword)
+                .textContentType(.newPassword)
+                .modifier(ProfileFieldStyle())
+                .padding(.top, 9)
+            SecureField("Повторите пароль", text: $onboardingConfirmation)
+                .textContentType(.newPassword)
+                .modifier(ProfileFieldStyle())
+                .padding(.top, 9)
+
+            FilledButton(title: session.completingProfile ? "СОЗДАЁМ ДОСТУП..." : "ПОЛУЧИТЬ 5 ДНЕЙ БЕСПЛАТНО") {
+                session.completeProfile(email: onboardingEmail, password: onboardingPassword, confirmation: onboardingConfirmation)
+            }
+            .disabled(session.completingProfile)
+            .padding(.top, 18)
+            Text("75 ГБ · 3 устройства · без оплаты")
+                .font(.system(size: 12))
+                .foregroundStyle(Color(white: 0.54))
+                .frame(maxWidth: .infinity)
+                .padding(.top, 11)
+        }
+        .onAppear {
+            if onboardingEmail.isEmpty { onboardingEmail = session.profileEmail }
+        }
+    }
+}
+
+private struct ProfileFieldStyle: ViewModifier {
+    func body(content: Content) -> some View {
+        content
+            .font(.system(size: 16))
+            .padding(.horizontal, 15)
+            .frame(height: 52)
+            .background(.white, in: RoundedRectangle(cornerRadius: 7))
+            .overlay(RoundedRectangle(cornerRadius: 7).stroke(Color.black.opacity(0.14)))
     }
 }
 

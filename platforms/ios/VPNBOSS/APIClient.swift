@@ -2,6 +2,17 @@ import Foundation
 
 struct AppAuthInit: Decodable { let appCode: String; let authUrl: String }
 struct AppAuthCheck: Decodable { let status: String; let token: String? }
+struct UserProfile: Decodable {
+    let email: String?
+    let hasPassword: Bool?
+    let hasEmail: Bool?
+    let needsProfileCompletion: Bool?
+    let trialUsed: Bool?
+    let sub: ActiveSubscription?
+}
+struct ActiveSubscription: Decodable { let id: Int?; let expiresAt: String? }
+struct TrialActivation: Decodable { let ok: Bool; let trial: Bool?; let alreadyActive: Bool?; let expiresAt: String? }
+struct ProfileCompletion: Decodable { let ok: Bool }
 private struct ConfigBundle: Decodable { let connect: ConnectInfo?; let configs: [ServerConfig]? }
 private struct ConnectInfo: Decodable { let subUrl: String? }
 private struct ServerConfig: Decodable { let id: Int?; let vlessKey: String?; let name: String?; let server: ServerInfo? }
@@ -40,6 +51,16 @@ final class APIClient {
             let flag = flag(for: location + " " + rawName)
             return RouteConfig(id: String(item.id ?? rawName.hashValue), flag: flag, name: clean(rawName, flag: flag), location: location, detail: "VLESS Reality", config: link)
         }
+    }
+
+    func profile() async throws -> UserProfile { try await request("GET", "/api/auth/me") }
+
+    func completeProfile(email: String, password: String) async throws -> ProfileCompletion {
+        try await request("POST", "/api/auth/complete-profile", body: ["email": email, "password": password])
+    }
+
+    func activateTrial() async throws -> TrialActivation {
+        try await request("POST", "/api/trial/activate", body: [String: String]())
     }
 
     private func subscription(_ raw: String) async throws -> [RouteConfig] {

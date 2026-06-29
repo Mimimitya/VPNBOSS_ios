@@ -13,6 +13,9 @@ final class AppSession: ObservableObject {
     @Published var connecting = false
     @Published var connected = false
     @Published var authorizing = false
+    @Published var needsProfileCompletion = false
+    @Published var profileEmail = ""
+    @Published var completingProfile = false
     @Published var message = ""
     @Published var showError = false
 
@@ -25,7 +28,7 @@ final class AppSession: ObservableObject {
         if let data = UserDefaults.standard.data(forKey: "vpnboss.routes"), let cached = try? JSONDecoder().decode([RouteConfig].self, from: data), !cached.isEmpty { routes = cached }
         Task {
             connected = await vpn.isConnected
-            if !token.isEmpty { await refreshRoutes() }
+            if !token.isEmpty { await resumeAccount() }
         }
     }
 
@@ -65,7 +68,7 @@ final class AppSession: ObservableObject {
                     self.token = token
                     UserDefaults.standard.set(token, forKey: "vpnboss.token")
                     authorizing = false
-                    await refreshRoutes()
+                    await resumeAccount()
                     return
                 }
                 if result.status == "expired" { fail("Ссылка входа истекла. Откройте её ещё раз."); return }
@@ -82,6 +85,45 @@ final class AppSession: ObservableObject {
             selected = min(selected, loaded.count - 1)
             if let data = try? JSONEncoder().encode(loaded) { UserDefaults.standard.set(data, forKey: "vpnboss.routes") }
         } catch { fail("Не удалось загрузить серверы подписки") }
+    }
+
+    func resumeAccount() async {
+        do {
+            let profile = try await api.profile()
+            profileEmail = profile.email ?? ""
+            if profile.needsProfileCompletion == true || profile.hasEmail == false || profile.hasPassword == false {
+                needsProfileCompletion = true
+                return
+            }
+            needsProfileCompletion = false
+            if profile.sub == nil && profile.trialUsed != true {
+                _ = try await api.activateTrial()
+            }
+            await refreshRoutes()
+        } catch {
+            fail("Не удалось загрузить профиль")
+        }
+    }
+
+    func completeProfile(email: String, password: String, confirmation: String) {
+        let cleanEmail = email.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard cleanEmail.contains("@"), cleanEmail.contains(".") else { fail("Введите корректный email"); return }
+        guard password.count >= 6 else { fail("Пароль должен содержать минимум 6 символов"); return }
+        guard password == confirmation else { fail("Пароли не совпадают"); return }
+        completingProfile = true
+        Task {
+            do {
+                _ = try await api.completeProfile(email: cleanEmail, password: password)
+                _ = try await api.activateTrial()
+                profileEmail = cleanEmail
+                needsProfileCompletion = false
+                completingProfile = false
+                await refreshRoutes()
+            } catch {
+                completingProfile = false
+                fail("Не удалось завершить регистрацию")
+            }
+        }
     }
 
     func connectSelected() {
