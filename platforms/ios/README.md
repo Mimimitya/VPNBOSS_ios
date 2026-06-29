@@ -1,17 +1,28 @@
-# VPNBOSS iOS
+# VPNBOSS for iOS
 
-На Mac:
+## Самый простой запуск на Mac
 
-```bash
-cd platforms/ios
-xcodegen generate
-open VPNBOSS.xcodeproj
-```
+1. Установите Xcode из App Store и один раз запустите его.
+2. Откройте папку `platforms/ios` в Finder.
+3. Дважды нажмите `OPEN_IN_XCODE.command`.
+4. В Xcode откройте `VPNBOSS` -> `Signing & Capabilities` и выберите свою Apple Team.
+5. Подключите iPhone, выберите его сверху и нажмите кнопку Run.
 
-В проекте:
+Скрипт сам создаёт `VPNBOSS.xcodeproj` и открывает проект. Повторный запуск безопасен.
 
-- `RootView.swift` — SwiftUI интерфейс в стиле Windows-клиента.
-- `APIClient.swift` — Telegram OAuth и загрузка `/api/connect/configs`.
-- `AppSession.swift` — состояние приложения и `NetworkExtension` manager.
+## TestFlight
 
-Для реального VPN на iOS нужен Apple Developer аккаунт с Network Extension entitlement и отдельный Packet Tunnel provider target. Интерфейс и API-авторизация уже подготовлены без оплат, балансов, паролей и личного кабинета внутри приложения.
+1. В Xcode выберите `Any iOS Device (arm64)`.
+2. Откройте `Product` -> `Archive`.
+3. В Organizer нажмите `Distribute App` -> `App Store Connect` -> `Upload`.
+4. После обработки сборки добавьте её в TestFlight в App Store Connect.
+
+Для установки VPN-профиля нужен платный Apple Developer аккаунт и разрешение Network Extensions для App ID `space.vpnboss.client`.
+
+## Структура
+
+- `VPNBOSS/RootView.swift` - интерфейс приложения.
+- `VPNBOSS/APIClient.swift` - авторизация через сайт и загрузка подписки.
+- `VPNBOSS/AppSession.swift` - сессия, серверы и Network Extension manager.
+- `project.yml` - воспроизводимая конфигурация Xcode.
+- `OPEN_IN_XCODE.command` - создание и открытие проекта одним запуском.

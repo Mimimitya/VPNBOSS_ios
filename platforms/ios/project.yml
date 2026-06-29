@@ -1,8 +1,16 @@
 name: VPNBOSS
 options:
   bundleIdPrefix: space.vpnboss
+  createIntermediateGroups: true
   deploymentTarget:
     iOS: "16.0"
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+    CODE_SIGN_STYLE: Automatic
+    CURRENT_PROJECT_VERSION: 1
+    MARKETING_VERSION: 1.0.0
+    TARGETED_DEVICE_FAMILY: "1"
 targets:
   VPNBOSS:
     type: application
@@ -13,7 +21,9 @@ targets:
       - VPNBOSS/Resources
     settings:
       PRODUCT_BUNDLE_IDENTIFIER: space.vpnboss.client
+      PRODUCT_NAME: VPNBOSS
       INFOPLIST_FILE: VPNBOSS/Info.plist
       ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+      SUPPORTS_MACCATALYST: NO
     entitlements:
       path: VPNBOSS/VPNBOSS.entitlements
