@@ -45,6 +45,12 @@ class MainActivity : Activity() {
     private lateinit var root: FrameLayout
     private var pulse: AnimatorSet? = null
     private var playFirstConnectAnimation = false
+    private var carouselView: LinearLayout? = null
+    private var leftFlagView: FrameLayout? = null
+    private var mainFlagView: FrameLayout? = null
+    private var rightFlagView: FrameLayout? = null
+    private var serverNameView: TextView? = null
+    private var serverDetailView: TextView? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -156,34 +162,38 @@ class MainActivity : Activity() {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER
         }
+        carouselView = carousel
         carousel.addView(label("‹", 43, INK, false).apply {
             gravity = Gravity.CENTER
             setOnClickListener { changeServer(-1) }
         }, LinearLayout.LayoutParams(dp(46), dp(92)))
-        carousel.addView(flagBubble(routeAt(selected - 1)?.flag ?: "🌐", false), LinearLayout.LayoutParams(dp(58), dp(58)).apply { marginEnd = dp(17) })
-        carousel.addView(flagBubble(route?.flag ?: "🌐", true).apply { setOnClickListener { showServers() } }, LinearLayout.LayoutParams(dp(92), dp(92)))
-        carousel.addView(flagBubble(routeAt(selected + 1)?.flag ?: "🌐", false), LinearLayout.LayoutParams(dp(58), dp(58)).apply { marginStart = dp(17) })
+        val leftFlag = flagBubble(routeAt(selected - 1)?.flag ?: "🌐", false)
+        val mainFlag = flagBubble(route?.flag ?: "🌐", true).apply { setOnClickListener { showServers() } }
+        val rightFlag = flagBubble(routeAt(selected + 1)?.flag ?: "🌐", false)
+        leftFlagView = leftFlag
+        mainFlagView = mainFlag
+        rightFlagView = rightFlag
+        carousel.addView(leftFlag, LinearLayout.LayoutParams(dp(58), dp(58)).apply { marginEnd = dp(17) })
+        carousel.addView(mainFlag, LinearLayout.LayoutParams(dp(92), dp(92)))
+        carousel.addView(rightFlag, LinearLayout.LayoutParams(dp(58), dp(58)).apply { marginStart = dp(17) })
         carousel.addView(label("›", 43, INK, false).apply {
             gravity = Gravity.CENTER
             setOnClickListener { changeServer(1) }
         }, LinearLayout.LayoutParams(dp(46), dp(92)))
         page.addView(carousel, lp(top = 16, height = 92))
 
-        page.addView(label(route?.name ?: "Серверы загружаются", 22, INK, true).apply { gravity = Gravity.CENTER }, lp(top = 12))
-        page.addView(label(when {
+        serverNameView = label(route?.name ?: "Серверы загружаются", 22, INK, true).apply { gravity = Gravity.CENTER }
+        page.addView(serverNameView, lp(top = 12))
+        serverDetailView = label(when {
             connecting -> "Устанавливаем защищённый маршрут"
             connected -> "Подключено · ${route?.detail ?: "VLESS Reality"}"
             else -> route?.detail ?: "Ожидание подписки"
-        }, 13, MUTED, false).apply { gravity = Gravity.CENTER }, lp(top = 7))
-        page.addView(label(when { connecting -> "ПОДКЛЮЧАЕМ"; connected -> "СОЕДИНЕНИЕ ЗАЩИЩЕНО"; else -> "КРУГ ПОДКЛЮЧАЕТ ВЫБРАННЫЙ СЕРВЕР" }, 10, INK, true).apply {
-            gravity = Gravity.CENTER
-            background = rounded(0xFFE8E8E5.toInt(), 7)
-            setPadding(dp(12), dp(8), dp(12), dp(8))
-        }, lp(top = 12))
+        }, 13, MUTED, false).apply { gravity = Gravity.CENTER }
+        page.addView(serverDetailView, lp(top = 7))
 
         page.addView(primaryButton(if (connected) "ОТКЛЮЧИТЬ" else "НАЙТИ ЛУЧШИЙ СЕРВЕР") {
             if (connected) stopVpn() else connectAutomatic()
-        }, lp(top = 18, height = 56))
+        }, lp(top = 26, height = 56))
         page.addView(space(0, 0), LinearLayout.LayoutParams(1, 0, .15f))
     }
 
@@ -210,21 +220,50 @@ class MainActivity : Activity() {
 
     private fun changeServer(delta: Int) {
         if (routes.isEmpty() || connecting || connected) return
-        root.animate()
-            .alpha(.35f)
-            .translationX(dp(-delta * 16).toFloat())
-            .setDuration(110)
+        val carousel = carouselView ?: return
+        carousel.animate()
+            .alpha(.15f)
+            .translationX(dp(-delta * 22).toFloat())
+            .scaleX(.97f)
+            .scaleY(.97f)
+            .setDuration(105)
             .withEndAction {
                 selected = (selected + delta + routes.size) % routes.size
                 prefs.edit().putInt("selected", selected).apply()
-                render()
-                root.translationX = dp(delta * 16).toFloat()
-                root.alpha = .35f
-                root.animate().alpha(1f).translationX(0f).setDuration(210).setInterpolator(DecelerateInterpolator()).start()
+                bindFlag(leftFlagView, routeAt(selected - 1)?.flag ?: "🌐", false)
+                bindFlag(mainFlagView, routeAt(selected)?.flag ?: "🌐", true)
+                bindFlag(rightFlagView, routeAt(selected + 1)?.flag ?: "🌐", false)
+                serverNameView?.text = routeAt(selected)?.name ?: "VPNBOSS"
+                serverDetailView?.text = routeAt(selected)?.detail ?: "VLESS Reality"
+                carousel.translationX = dp(delta * 22).toFloat()
+                carousel.animate()
+                    .alpha(1f)
+                    .translationX(0f)
+                    .scaleX(1f)
+                    .scaleY(1f)
+                    .setDuration(210)
+                    .setInterpolator(DecelerateInterpolator())
+                    .start()
+                serverNameView?.apply {
+                    alpha = 0f
+                    translationY = dp(5).toFloat()
+                    animate().alpha(1f).translationY(0f).setDuration(190).start()
+                }
+                serverDetailView?.apply {
+                    alpha = 0f
+                    animate().alpha(1f).setDuration(220).start()
+                }
             }.start()
     }
 
     private fun flagBubble(flag: String, main: Boolean) = FrameLayout(this).apply {
+        bindFlag(this, flag, main)
+    }
+
+    private fun bindFlag(target: FrameLayout?, flag: String, main: Boolean) {
+        target ?: return
+        target.removeAllViews()
+        target.apply {
         background = circle(Color.WHITE, 0x14000000)
         elevation = dp(if (main) 8 else 3).toFloat()
         alpha = if (main) 1f else .56f
@@ -245,6 +284,7 @@ class MainActivity : Activity() {
             }, FrameLayout.LayoutParams(-1, -1))
         } else {
             addView(label("◎", if (main) 32 else 21, INK, true).apply { gravity = Gravity.CENTER }, FrameLayout.LayoutParams(-1, -1))
+        }
         }
     }
 
@@ -317,7 +357,11 @@ class MainActivity : Activity() {
                     selected = index
                     prefs.edit().putInt("selected", index).apply()
                     dialog.dismiss()
-                    render()
+                    bindFlag(leftFlagView, routeAt(selected - 1)?.flag ?: "🌐", false)
+                    bindFlag(mainFlagView, routeAt(selected)?.flag ?: "🌐", true)
+                    bindFlag(rightFlagView, routeAt(selected + 1)?.flag ?: "🌐", false)
+                    serverNameView?.text = routeAt(selected)?.name ?: "VPNBOSS"
+                    serverDetailView?.text = routeAt(selected)?.detail ?: "VLESS Reality"
                 }
             }, lp(top = 8, height = 62))
         }
