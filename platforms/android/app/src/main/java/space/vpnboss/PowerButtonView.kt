@@ -68,7 +68,11 @@ class PowerButtonView(context: Context) : View(context) {
         val cx = width / 2f
         val cy = height / 2f
         val radius = size * .48f
-        fill.color = if (state == State.OFF) 0xFF2B0710.toInt() else 0xFF050505.toInt()
+        fill.color = when (state) {
+            State.OFF -> 0xFF2B0710.toInt()
+            State.CONNECTING -> 0xFF171918.toInt()
+            State.ON -> 0xFF708078.toInt()
+        }
         canvas.drawCircle(cx, cy, radius, fill)
 
         stroke.strokeWidth = size * .061f

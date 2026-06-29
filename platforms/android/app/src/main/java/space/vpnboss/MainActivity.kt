@@ -51,6 +51,10 @@ class MainActivity : Activity() {
     private var rightFlagView: FrameLayout? = null
     private var serverNameView: TextView? = null
     private var serverDetailView: TextView? = null
+    private var connectionTitleView: TextView? = null
+    private var powerButtonView: PowerButtonView? = null
+    private var powerHaloView: View? = null
+    private var primaryActionView: TextView? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -119,6 +123,7 @@ class MainActivity : Activity() {
 
         val powerWrap = FrameLayout(this)
         val halo = View(this).apply { background = circle(if (connected) 0x16000000 else 0x0A000000) }
+        powerHaloView = halo
         val power = PowerButtonView(this).apply {
             setState(when {
                 connecting -> PowerButtonView.State.CONNECTING
@@ -135,6 +140,7 @@ class MainActivity : Activity() {
                 }.start()
             }
         }
+        powerButtonView = power
         powerWrap.addView(halo, FrameLayout.LayoutParams(dp(234), dp(234), Gravity.CENTER))
         powerWrap.addView(power, FrameLayout.LayoutParams(dp(210), dp(210), Gravity.CENTER))
         page.addView(powerWrap, lp(height = 246))
@@ -152,11 +158,13 @@ class MainActivity : Activity() {
             }
         }
 
-        page.addView(label(when {
+        val connectionTitle = label(when {
             connecting -> "Устанавливаем соединение"
             connected -> "VPNBOSS включён"
             else -> "Выберите локацию сервера"
-        }, 15, INK, true).apply { gravity = Gravity.CENTER })
+        }, 15, INK, true).apply { gravity = Gravity.CENTER }
+        connectionTitleView = connectionTitle
+        page.addView(connectionTitle)
 
         val carousel = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
@@ -191,9 +199,12 @@ class MainActivity : Activity() {
         }, 13, MUTED, false).apply { gravity = Gravity.CENTER }
         page.addView(serverDetailView, lp(top = 7))
 
-        page.addView(primaryButton(if (connected) "ОТКЛЮЧИТЬ" else "НАЙТИ ЛУЧШИЙ СЕРВЕР") {
+        val primaryAction = primaryButton(if (connected) "ОТКЛЮЧИТЬ" else "НАЙТИ ЛУЧШИЙ СЕРВЕР") {
             if (connected) stopVpn() else connectAutomatic()
-        }, lp(top = 26, height = 56))
+        }
+        primaryActionView = primaryAction
+        page.addView(primaryAction, lp(top = 26, height = 56))
+        page.addView(secondaryButton("ЛИЧНЫЙ КАБИНЕТ") { showCabinetDialog() }, lp(top = 9, height = 48))
         page.addView(space(0, 0), LinearLayout.LayoutParams(1, 0, .15f))
     }
 
@@ -387,7 +398,7 @@ class MainActivity : Activity() {
         if (routes.isEmpty()) return showError("Нет доступных серверов")
         autoConnect = true
         connecting = true
-        render()
+        updateConnectionPresentation()
         thread {
             val measured = routes.mapIndexed { index, route -> index to measureDelay(route.config) }
             val best = measured.filter { it.second >= 0 }.minByOrNull { it.second }?.first ?: selected
@@ -407,9 +418,9 @@ class MainActivity : Activity() {
     private fun startVpn() {
         val route = routes.getOrNull(selected) ?: return
         connecting = true
-        render()
+        updateConnectionPresentation()
         val config = runCatching { XrayConfigBuilder.build(route.config, route.name) }
-            .getOrElse { connecting = false; render(); return showError(it.message) }
+            .getOrElse { connecting = false; updateConnectionPresentation(); return showError(it.message) }
         startForegroundService(Intent(this, XrayVPNService::class.java).apply {
             putExtra("COMMAND", AppConfigs.V2RAY_SERVICE_COMMANDS.START_SERVICE)
             putExtra("V2RAY_CONFIG", config)
@@ -418,8 +429,7 @@ class MainActivity : Activity() {
         handler.postDelayed({
             connecting = false
             connected = AppConfigs.V2RAY_STATE == AppConfigs.V2RAY_STATES.V2RAY_CONNECTED
-            playFirstConnectAnimation = connected
-            render()
+            updateConnectionPresentation(animateSuccess = connected)
             if (!connected) showError("Не удалось запустить VPN-туннель. Проверьте конфигурацию сервера.")
         }, 1_500)
     }
@@ -430,14 +440,97 @@ class MainActivity : Activity() {
         })
         connected = false
         connecting = false
-        render()
+        updateConnectionPresentation()
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         if (requestCode == VPN_PERMISSION) {
-            if (resultCode == RESULT_OK) startVpn() else { connecting = false; render() }
+            if (resultCode == RESULT_OK) startVpn() else { connecting = false; updateConnectionPresentation() }
         }
+    }
+
+    private fun updateConnectionPresentation(animateSuccess: Boolean = false) {
+        val state = when {
+            connecting -> PowerButtonView.State.CONNECTING
+            connected -> PowerButtonView.State.ON
+            else -> PowerButtonView.State.OFF
+        }
+        powerButtonView?.setState(state, animateSuccess)
+        powerHaloView?.background = circle(when {
+            connected -> 0x24708078
+            connecting -> 0x16000000
+            else -> 0x0A000000
+        })
+        pulse?.cancel()
+        if (connecting) {
+            val halo = powerHaloView
+            if (halo != null) {
+                val scaleX = ObjectAnimator.ofFloat(halo, View.SCALE_X, .88f, 1.08f).apply {
+                    repeatCount = ObjectAnimator.INFINITE
+                    repeatMode = ObjectAnimator.REVERSE
+                }
+                val scaleY = ObjectAnimator.ofFloat(halo, View.SCALE_Y, .88f, 1.08f).apply {
+                    repeatCount = ObjectAnimator.INFINITE
+                    repeatMode = ObjectAnimator.REVERSE
+                }
+                val alpha = ObjectAnimator.ofFloat(halo, View.ALPHA, .28f, .9f).apply {
+                    repeatCount = ObjectAnimator.INFINITE
+                    repeatMode = ObjectAnimator.REVERSE
+                }
+                pulse = AnimatorSet().apply {
+                    playTogether(scaleX, scaleY, alpha)
+                    duration = 760
+                    start()
+                }
+            }
+        } else {
+            powerHaloView?.apply { scaleX = 1f; scaleY = 1f; alpha = 1f }
+        }
+        connectionTitleView?.text = when {
+            connecting -> "Устанавливаем соединение"
+            connected -> "VPNBOSS включён"
+            else -> "Выберите локацию сервера"
+        }
+        serverDetailView?.text = when {
+            connecting -> "Устанавливаем защищённый маршрут"
+            connected -> "Подключено · ${routeAt(selected)?.detail ?: "VLESS Reality"}"
+            else -> routeAt(selected)?.detail ?: "Ожидание подписки"
+        }
+        primaryActionView?.text = if (connected) "ОТКЛЮЧИТЬ" else "НАЙТИ ЛУЧШИЙ СЕРВЕР"
+        listOf(connectionTitleView, serverDetailView).forEach { view ->
+            view?.apply {
+                animate().cancel()
+                alpha = .35f
+                animate().alpha(1f).setDuration(220).start()
+            }
+        }
+    }
+
+    private fun showCabinetDialog() {
+        val dialog = Dialog(this)
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
+        val content = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(24), dp(25), dp(24), dp(20))
+            background = rounded(PAPER, 8)
+            addView(label("Личный кабинет", 24, INK, true))
+            addView(label("Управление подпиской и аккаунтом находится на официальном сайте VPNBOSS.", 14, SECONDARY, false).apply {
+                setLineSpacing(dp(3).toFloat(), 1f)
+            }, lp(top = 11))
+            addView(label("vpnboss.space", 17, INK, true), lp(top = 22))
+            addView(primaryButton("ОТКРЫТЬ САЙТ") {
+                startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://vpnboss.space/cabinet")))
+                dialog.dismiss()
+            }, lp(top = 22, height = 54))
+            addView(secondaryButton("ЗАКРЫТЬ") { dialog.dismiss() }, lp(top = 8, height = 46))
+        }
+        dialog.setContentView(content)
+        dialog.window?.apply {
+            setBackgroundDrawableResource(android.R.color.transparent)
+        }
+        dialog.show()
+        dialog.window?.setLayout((resources.displayMetrics.widthPixels * .9f).toInt(), ViewGroup.LayoutParams.WRAP_CONTENT)
     }
 
     private fun primaryButton(text: String, action: () -> Unit) = label(text, 14, Color.WHITE, true).apply {
