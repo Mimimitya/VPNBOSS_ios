@@ -11,6 +11,13 @@ settings:
     CURRENT_PROJECT_VERSION: 1
     MARKETING_VERSION: 1.0.0
     TARGETED_DEVICE_FAMILY: "1"
+packages:
+  LibXray:
+    url: https://github.com/wanliyunyan/LibXray
+    exactVersion: 26.6.1
+  Tun2SocksKit:
+    url: https://github.com/EbrahimTahernejad/Tun2SocksKit
+    exactVersion: 5.15.0
 targets:
   VPNBOSS:
     type: application
@@ -19,6 +26,8 @@ targets:
       - VPNBOSS
     resources:
       - VPNBOSS/Resources
+    dependencies:
+      - target: PacketTunnel
     settings:
       PRODUCT_BUNDLE_IDENTIFIER: space.vpnboss.client
       PRODUCT_NAME: VPNBOSS
@@ -27,3 +36,19 @@ targets:
       SUPPORTS_MACCATALYST: NO
     entitlements:
       path: VPNBOSS/VPNBOSS.entitlements
+  PacketTunnel:
+    type: app-extension
+    platform: iOS
+    sources:
+      - PacketTunnel
+    dependencies:
+      - package: LibXray
+      - package: Tun2SocksKit
+    settings:
+      PRODUCT_BUNDLE_IDENTIFIER: space.vpnboss.client.PacketTunnel
+      PRODUCT_NAME: PacketTunnel
+      INFOPLIST_FILE: PacketTunnel/Info.plist
+      SKIP_INSTALL: YES
+      APPLICATION_EXTENSION_API_ONLY: YES
+    entitlements:
+      path: PacketTunnel/PacketTunnel.entitlements

@@ -27,5 +27,8 @@ fi
 echo "Generating VPNBOSS.xcodeproj..."
 xcodegen generate --spec project.yml
 
+echo "Downloading the iOS VPN core..."
+xcodebuild -resolvePackageDependencies -project VPNBOSS.xcodeproj -scheme VPNBOSS
+
 echo "Opening Xcode..."
 open VPNBOSS.xcodeproj

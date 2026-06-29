@@ -107,8 +107,7 @@ final class AppSession: ObservableObject {
     private func startVPN(_ route: RouteConfig) async {
         do {
             try await vpn.start(route)
-            try? await Task.sleep(for: .milliseconds(700))
-            connected = await vpn.isConnected
+            connected = await vpn.waitUntilConnected()
             if !connected { throw URLError(.cannotConnectToHost) }
         } catch { fail("Не удалось подключить выбранный сервер") }
         connecting = false
@@ -140,13 +139,22 @@ final class VPNManager {
         let proto = NETunnelProviderProtocol()
         proto.providerBundleIdentifier = "space.vpnboss.client.PacketTunnel"
         proto.serverAddress = route.name
-        proto.providerConfiguration = ["vless": route.config]
+        let xrayJSON = try XrayConfigurationBuilder.build(from: route.config)
+        proto.providerConfiguration = ["vless": route.config, "xrayJSON": xrayJSON, "socks5Port": 10808]
         manager.protocolConfiguration = proto
         manager.localizedDescription = "VPNBOSS"
         manager.isEnabled = true
         try await manager.saveToPreferences()
         try await manager.loadFromPreferences()
-        try manager.connection.startVPNTunnel()
+        try manager.connection.startVPNTunnel(options: ["xrayJSON": xrayJSON as NSString, "socks5Port": NSNumber(value: 10808)])
+    }
+
+    func waitUntilConnected() async -> Bool {
+        for _ in 0..<40 {
+            if await isConnected { return true }
+            try? await Task.sleep(for: .milliseconds(250))
+        }
+        return false
     }
 
     func stop() async {

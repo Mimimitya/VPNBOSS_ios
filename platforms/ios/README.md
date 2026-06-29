@@ -8,7 +8,9 @@
 4. В Xcode откройте `VPNBOSS` -> `Signing & Capabilities` и выберите свою Apple Team.
 5. Подключите iPhone, выберите его сверху и нажмите кнопку Run.
 
-Скрипт сам создаёт `VPNBOSS.xcodeproj` и открывает проект. Повторный запуск безопасен.
+Скрипт сам создаёт `VPNBOSS.xcodeproj`, загружает нативные VPN-библиотеки и открывает проект. Повторный запуск безопасен.
+
+В проект уже включены Packet Tunnel extension, LibXray и Tun2SocksKit. Подключение использует системный VPN iOS, а не HTTP-прокси.
 
 ## TestFlight
 
@@ -24,5 +26,7 @@
 - `VPNBOSS/RootView.swift` - интерфейс приложения.
 - `VPNBOSS/APIClient.swift` - авторизация через сайт и загрузка подписки.
 - `VPNBOSS/AppSession.swift` - сессия, серверы и Network Extension manager.
+- `VPNBOSS/XrayConfigurationBuilder.swift` - преобразование VLESS Reality в конфигурацию Xray.
+- `PacketTunnel/` - системное VPN-расширение iOS.
 - `project.yml` - воспроизводимая конфигурация Xcode.
 - `OPEN_IN_XCODE.command` - создание и открытие проекта одним запуском.
