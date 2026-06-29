@@ -91,9 +91,10 @@ class MainActivity : Activity() {
         gravity = Gravity.CENTER_VERTICAL
         addView(ImageView(this@MainActivity).apply {
             setImageResource(R.drawable.vpnboss_logo)
-            scaleType = ImageView.ScaleType.FIT_START
+            scaleType = ImageView.ScaleType.FIT_CENTER
             adjustViewBounds = true
-        }, LinearLayout.LayoutParams(dp(172), dp(44)))
+            contentDescription = "VPNBOSS"
+        }, LinearLayout.LayoutParams(dp(44), dp(44)))
         addView(LinearLayout(this@MainActivity).apply {
             gravity = Gravity.END or Gravity.CENTER_VERTICAL
             addView(View(this@MainActivity).apply {
