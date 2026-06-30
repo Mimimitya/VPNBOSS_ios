@@ -14,17 +14,21 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.view.Gravity
+import android.view.GestureDetector
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.view.Window
 import android.view.animation.AccelerateDecelerateInterpolator
 import android.view.animation.DecelerateInterpolator
 import android.widget.FrameLayout
+import android.widget.EditText
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
+import android.text.InputType
 import com.github.tfox.flutter_vless.xray.service.XrayVPNService
 import com.github.tfox.flutter_vless.xray.utils.AppConfigs
 import java.net.InetSocketAddress
@@ -55,6 +59,8 @@ class MainActivity : Activity() {
     private var powerButtonView: PowerButtonView? = null
     private var powerHaloView: View? = null
     private var primaryActionView: TextView? = null
+    private var accountLoading = false
+    private var profileDialog: Dialog? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -62,13 +68,13 @@ class MainActivity : Activity() {
         selected = prefs.getInt("selected", 0)
         routes = loadCachedRoutes()
         render()
-        if (api.token.isNotBlank()) refreshRoutes()
+        if (api.token.isNotBlank()) resumeAccount()
     }
 
     override fun onResume() {
         super.onResume()
         connected = AppConfigs.V2RAY_STATE == AppConfigs.V2RAY_STATES.V2RAY_CONNECTED
-        if (api.token.isNotBlank() && routes.isEmpty()) refreshRoutes()
+        if (api.token.isNotBlank() && routes.isEmpty()) resumeAccount()
         else render()
     }
 
@@ -177,7 +183,7 @@ class MainActivity : Activity() {
             setOnClickListener { changeServer(-1) }
         }, LinearLayout.LayoutParams(dp(46), dp(92)))
         val leftFlag = flagBubble(routeAt(selected - 1)?.flag ?: "🌐", false)
-        val mainFlag = flagBubble(route?.flag ?: "🌐", true).apply { setOnClickListener { showServers() } }
+        val mainFlag = flagBubble(route?.flag ?: "🌐", true)
         val rightFlag = flagBubble(routeAt(selected + 1)?.flag ?: "🌐", false)
         leftFlagView = leftFlag
         mainFlagView = mainFlag
@@ -189,6 +195,7 @@ class MainActivity : Activity() {
             gravity = Gravity.CENTER
             setOnClickListener { changeServer(1) }
         }, LinearLayout.LayoutParams(dp(46), dp(92)))
+        installCarouselSwipe(carousel, leftFlag, mainFlag, rightFlag)
         page.addView(carousel, lp(top = 16, height = 92))
 
         serverNameView = label(route?.name ?: "Серверы загружаются", 22, INK, true).apply { gravity = Gravity.CENTER }
@@ -268,6 +275,49 @@ class MainActivity : Activity() {
             }.start()
     }
 
+    private fun installCarouselSwipe(carousel: LinearLayout, vararg targets: View) {
+        var startX = 0f
+        var switched = false
+        val detector = GestureDetector(this, object : GestureDetector.SimpleOnGestureListener() {
+            override fun onDown(event: MotionEvent): Boolean = true
+
+            override fun onScroll(first: MotionEvent?, current: MotionEvent, distanceX: Float, distanceY: Float): Boolean {
+                if (connecting || connected || kotlin.math.abs(distanceX) < kotlin.math.abs(distanceY)) return false
+                carousel.translationX = (carousel.translationX - distanceX * .45f).coerceIn(-dp(42).toFloat(), dp(42).toFloat())
+                carousel.alpha = .82f
+                return true
+            }
+
+            override fun onFling(first: MotionEvent?, last: MotionEvent, velocityX: Float, velocityY: Float): Boolean {
+                if (kotlin.math.abs(velocityX) < 280 || kotlin.math.abs(velocityX) < kotlin.math.abs(velocityY)) return false
+                switched = true
+                changeServer(if (velocityX < 0) 1 else -1)
+                return true
+            }
+
+            override fun onSingleTapUp(event: MotionEvent): Boolean {
+                showServers()
+                return true
+            }
+        })
+        val listener = View.OnTouchListener { _, event ->
+            if (event.actionMasked == MotionEvent.ACTION_DOWN) {
+                startX = event.x
+                switched = false
+            }
+            val handled = detector.onTouchEvent(event)
+            if (event.actionMasked == MotionEvent.ACTION_UP || event.actionMasked == MotionEvent.ACTION_CANCEL) {
+                val distance = event.x - startX
+                if (!switched && event.actionMasked == MotionEvent.ACTION_UP && kotlin.math.abs(distance) > dp(42)) {
+                    changeServer(if (distance < 0) 1 else -1)
+                }
+                carousel.animate().translationX(0f).alpha(1f).setDuration(180).start()
+            }
+            handled
+        }
+        targets.forEach { it.setOnTouchListener(listener) }
+    }
+
     private fun flagBubble(flag: String, main: Boolean) = FrameLayout(this).apply {
         bindFlag(this, flag, main)
     }
@@ -316,7 +366,7 @@ class MainActivity : Activity() {
             when (runCatching { api.appAuthCheck(code) }.getOrDefault("pending")) {
                 "confirmed" -> {
                     prefs.edit().putString("token", api.token).apply()
-                    refreshRoutes()
+                    resumeAccount()
                     return@thread
                 }
                 "expired" -> {
@@ -325,6 +375,99 @@ class MainActivity : Activity() {
                 }
             }
         }
+    }
+
+    private fun resumeAccount() {
+        if (accountLoading || api.token.isBlank()) return
+        accountLoading = true
+        thread {
+            runCatching { api.profile() }
+                .onSuccess { profile ->
+                    when {
+                        profile.needsCompletion -> handler.post {
+                            accountLoading = false
+                            showProfileCompletion(profile.email)
+                        }
+                        !profile.hasSubscription && !profile.trialUsed -> runCatching { api.activateTrial() }
+                            .onSuccess { accountLoading = false; refreshRoutes() }
+                            .onFailure { accountLoading = false; showError(it.message) }
+                        else -> { accountLoading = false; refreshRoutes() }
+                    }
+                }
+                .onFailure { error ->
+                    accountLoading = false
+                    if (error.message?.contains("401") == true) {
+                        api.token = ""
+                        prefs.edit().remove("token").apply()
+                        handler.post { render() }
+                    } else showError(error.message)
+                }
+        }
+    }
+
+    private fun showProfileCompletion(savedEmail: String) {
+        if (profileDialog?.isShowing == true || isFinishing) return
+        val email = profileField("Email", savedEmail, InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS)
+        val password = profileField("Пароль", "", InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD)
+        val confirmation = profileField("Повторите пароль", "", InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD)
+        val dialog = Dialog(this).apply {
+            requestWindowFeature(Window.FEATURE_NO_TITLE)
+            setCancelable(false)
+        }
+        val content = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(24), dp(25), dp(24), dp(20))
+            background = rounded(PAPER, 8)
+            addView(label("Завершите регистрацию", 24, INK, true))
+            addView(label("Укажите email и придумайте пароль. После этого мы сразу подарим вам 5 дней VPNBOSS.", 14, SECONDARY, false).apply {
+                setLineSpacing(dp(3).toFloat(), 1f)
+            }, lp(top = 10))
+            addView(email, lp(top = 20, height = 52))
+            addView(password, lp(top = 9, height = 52))
+            addView(confirmation, lp(top = 9, height = 52))
+            addView(primaryButton("ПОЛУЧИТЬ 5 ДНЕЙ БЕСПЛАТНО") {
+                val cleanEmail = email.text.toString().trim()
+                val pass = password.text.toString()
+                when {
+                    !android.util.Patterns.EMAIL_ADDRESS.matcher(cleanEmail).matches() -> showError("Введите корректный email")
+                    pass.length < 6 -> showError("Пароль должен содержать минимум 6 символов")
+                    pass != confirmation.text.toString() -> showError("Пароли не совпадают")
+                    else -> {
+                        email.isEnabled = false; password.isEnabled = false; confirmation.isEnabled = false
+                        thread {
+                            runCatching {
+                                api.completeProfile(cleanEmail, pass)
+                                api.activateTrial()
+                            }.onSuccess {
+                                handler.post { dialog.dismiss(); profileDialog = null }
+                                refreshRoutes()
+                            }.onFailure { error -> handler.post {
+                                email.isEnabled = true; password.isEnabled = true; confirmation.isEnabled = true
+                                showError(error.message)
+                            } }
+                        }
+                    }
+                }
+            }, lp(top = 18, height = 56))
+            addView(label("75 ГБ · 3 устройства · без оплаты", 12, MUTED, false).apply { gravity = Gravity.CENTER }, lp(top = 11))
+        }
+        dialog.setContentView(content)
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+        dialog.show()
+        dialog.window?.setLayout((resources.displayMetrics.widthPixels * .9f).toInt(), ViewGroup.LayoutParams.WRAP_CONTENT)
+        profileDialog = dialog
+    }
+
+    private fun profileField(hint: String, value: String, type: Int) = EditText(this).apply {
+        this.hint = hint
+        setText(value)
+        inputType = type
+        textSize = 16f
+        setTextColor(INK)
+        setHintTextColor(MUTED)
+        setPadding(dp(15), 0, dp(15), 0)
+        background = rounded(Color.WHITE, 7, 0x24000000)
+        setSelectAllOnFocus(false)
     }
 
     private fun refreshRoutes() = thread {

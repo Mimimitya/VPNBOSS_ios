@@ -8,6 +8,12 @@ import java.net.URLDecoder
 import android.util.Base64
 
 data class AuthInit(val appCode: String, val authUrl: String)
+data class ProfileState(
+    val email: String,
+    val needsCompletion: Boolean,
+    val hasSubscription: Boolean,
+    val trialUsed: Boolean,
+)
 data class RouteItem(
     val id: Long,
     val flag: String,
@@ -29,6 +35,25 @@ class ApiClient(private val baseUrl: String = "https://vpnboss.space") {
         val payload = request("GET", "/api/app-auth/check/$appCode", null, authenticated = false)
         if (payload.optString("status") == "confirmed") token = payload.optString("token")
         return payload.optString("status", "pending")
+    }
+
+    fun profile(): ProfileState {
+        val payload = request("GET", "/api/auth/me", null)
+        return ProfileState(
+            email = payload.optString("email"),
+            needsCompletion = payload.optBoolean("needsProfileCompletion", false) ||
+                !payload.optBoolean("hasEmail", false) || !payload.optBoolean("hasPassword", false),
+            hasSubscription = payload.optJSONObject("sub") != null,
+            trialUsed = payload.optBoolean("trialUsed", false),
+        )
+    }
+
+    fun completeProfile(email: String, password: String) {
+        request("POST", "/api/auth/complete-profile", JSONObject().put("email", email).put("password", password))
+    }
+
+    fun activateTrial() {
+        request("POST", "/api/trial/activate", JSONObject())
     }
 
     fun loadRoutes(): List<RouteItem> {
