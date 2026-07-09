@@ -1,13 +1,14 @@
 package space.vpnboss
 
-import org.json.JSONArray
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
 import java.net.URLDecoder
+import java.util.Locale
 import android.util.Base64
 
 data class AuthInit(val appCode: String, val authUrl: String)
+data class AuthCheck(val status: String, val subscriptionUrl: String?)
 data class ProfileState(
     val email: String,
     val needsCompletion: Boolean,
@@ -17,6 +18,7 @@ data class ProfileState(
 data class RouteItem(
     val id: Long,
     val flag: String,
+    val countryCode: String,
     val name: String,
     val location: String,
     val detail: String,
@@ -31,59 +33,34 @@ class ApiClient(private val baseUrl: String = "https://vpnboss.space") {
         return AuthInit(payload.getString("appCode"), payload.getString("authUrl"))
     }
 
-    fun appAuthCheck(appCode: String): String {
+    fun appAuthCheck(appCode: String): AuthCheck {
         val payload = request("GET", "/api/app-auth/check/$appCode", null, authenticated = false)
         if (payload.optString("status") == "confirmed") token = payload.optString("token")
-        return payload.optString("status", "pending")
+        return AuthCheck(
+            status = payload.optString("status", "pending"),
+            subscriptionUrl = payload.optJSONObject("connect")?.optString("subUrl")?.takeIf(String::isNotBlank),
+        )
     }
 
     fun profile(): ProfileState {
         val payload = request("GET", "/api/auth/me", null)
         return ProfileState(
             email = payload.optString("email"),
-            needsCompletion = payload.optBoolean("needsProfileCompletion", false) ||
-                !payload.optBoolean("hasEmail", false) || !payload.optBoolean("hasPassword", false),
+            needsCompletion = payload.optBoolean("needsProfileCompletion", false),
             hasSubscription = payload.optJSONObject("sub") != null,
             trialUsed = payload.optBoolean("trialUsed", false),
         )
     }
 
-    fun completeProfile(email: String, password: String) {
-        request("POST", "/api/auth/complete-profile", JSONObject().put("email", email).put("password", password))
+    fun connectionUrl(): String {
+        return request("GET", "/api/connect", null).getString("subUrl")
     }
 
-    fun activateTrial() {
-        request("POST", "/api/trial/activate", JSONObject())
-    }
-
-    fun loadRoutes(): List<RouteItem> {
-        val bundle = request("GET", "/api/connect/configs", null)
-        val subscriptionUrl = bundle.optJSONObject("connect")?.optString("subUrl").orEmpty()
-        if (subscriptionUrl.isNotBlank()) {
-            val subscriptionRoutes = runCatching { loadSubscription(subscriptionUrl) }.getOrDefault(emptyList())
-            if (subscriptionRoutes.isNotEmpty()) return subscriptionRoutes
+    fun loadRoutes(subscriptionUrl: String): List<RouteItem> {
+        require(subscriptionUrl.startsWith("https://")) { "Ссылка подписки должна использовать HTTPS" }
+        return loadSubscription(subscriptionUrl).also {
+            require(it.isNotEmpty()) { "Подписка пока не содержит доступных серверов" }
         }
-        val configs = bundle.optJSONArray("configs") ?: JSONArray()
-        val result = mutableListOf<RouteItem>()
-        for (index in 0 until configs.length()) {
-            val item = configs.optJSONObject(index) ?: continue
-            val server = item.optJSONObject("server") ?: JSONObject()
-            val rawName = server.optString("name").ifBlank { item.optString("name", "VPNBOSS") }
-            val location = server.optString("location").ifBlank { rawName }
-            val flag = flagFor(location, rawName)
-            val config = item.optString("vlessKey")
-            if (config.startsWith("vless://")) {
-                result += RouteItem(
-                    id = item.optLong("id", index.toLong()),
-                    flag = flag,
-                    name = cleanName(rawName, flag),
-                    location = location,
-                    detail = "VLESS Reality",
-                    config = config,
-                )
-            }
-        }
-        return result
     }
 
     private fun loadSubscription(rawUrl: String): List<RouteItem> {
@@ -108,7 +85,17 @@ class ApiClient(private val baseUrl: String = "https://vpnboss.space") {
     private fun routeFromLink(index: Int, link: String): RouteItem? = runCatching {
         val uri = android.net.Uri.parse(link)
         val fragment = URLDecoder.decode(uri.fragment ?: uri.host ?: "VPNBOSS", "UTF-8")
+        val serviceText = fragment.lowercase()
+        if (
+            listOf(
+                "лимит устройств",
+                "удалите одно устройство",
+                "device limit",
+                "remove one device",
+            ).any(serviceText::contains)
+        ) return null
         val flag = extractFlag(fragment).ifBlank { flagFor(fragment, uri.host.orEmpty()) }
+        val countryCode = countryCodeFromFlag(flag).ifBlank { countryCodeFor(fragment, uri.host.orEmpty()) }
         val name = cleanName(fragment, flag)
             .replace(Regex("(?i)\\s*\\|\\s*iPhone\\s*"), "")
             .replace(Regex("\\s+"), " ")
@@ -116,6 +103,7 @@ class ApiClient(private val baseUrl: String = "https://vpnboss.space") {
         RouteItem(
             id = index.toLong(),
             flag = flag,
+            countryCode = countryCode,
             name = name,
             location = name,
             detail = "${uri.getQueryParameter("security")?.uppercase() ?: "REALITY"} · ${uri.getQueryParameter("type")?.uppercase() ?: "TCP"}",
@@ -134,6 +122,41 @@ class ApiClient(private val baseUrl: String = "https://vpnboss.space") {
     }
 
     private fun cleanName(value: String, flag: String): String = value.replace(flag, "").trim().ifBlank { "VPNBOSS" }
+
+    private fun countryCodeFromFlag(flag: String): String {
+        val points = flag.codePoints().toArray()
+        if (points.size < 2 || points[0] !in 0x1F1E6..0x1F1FF || points[1] !in 0x1F1E6..0x1F1FF) return ""
+        return "${('a'.code + points[0] - 0x1F1E6).toChar()}${('a'.code + points[1] - 0x1F1E6).toChar()}"
+    }
+
+    private fun countryCodeFor(vararg values: String): String {
+        val value = values.joinToString(" ").lowercase()
+        val fixed = when {
+            listOf("europe", "europa", "европа", "евросоюз", "european union").any(value::contains) -> "eu"
+            listOf("denmark", "дания", "copenhagen", "копенгаген").any(value::contains) -> "dk"
+            listOf("germany", "германия", "frankfurt", "берлин").any(value::contains) -> "de"
+            listOf("spain", "испания", "madrid", "мадрид").any(value::contains) -> "es"
+            listOf("netherlands", "нидерланды", "amsterdam", "амстердам").any(value::contains) -> "nl"
+            listOf("finland", "финляндия", "helsinki", "хельсинки").any(value::contains) -> "fi"
+            listOf("france", "франция", "paris", "париж").any(value::contains) -> "fr"
+            listOf("united kingdom", "great britain", "london", "великобритания", "лондон").any(value::contains) -> "gb"
+            listOf("united states", "usa", "new york", "сша").any(value::contains) -> "us"
+            listOf("russia", "россия", "moscow", "москва").any(value::contains) -> "ru"
+            else -> ""
+        }
+        if (fixed.isNotEmpty()) return fixed
+
+        val languages = listOf(Locale.ENGLISH, Locale("ru"), Locale("es"))
+        for (code in Locale.getISOCountries()) {
+            val lowerCode = code.lowercase()
+            if (Regex("(^|[^a-z])${Regex.escape(lowerCode)}([^a-z]|$)").containsMatchIn(value)) return lowerCode
+            val region = Locale.Builder().setRegion(code).build()
+            if (languages.any { locale ->
+                    region.getDisplayCountry(locale).lowercase(locale).takeIf { it.length >= 4 }?.let(value::contains) == true
+                }) return lowerCode
+        }
+        return "xx"
+    }
 
     private fun flagFor(vararg values: String): String {
         val value = values.joinToString(" ").lowercase()

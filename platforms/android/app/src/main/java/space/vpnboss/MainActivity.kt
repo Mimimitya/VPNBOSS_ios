@@ -8,27 +8,26 @@ import android.content.Intent
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
+import android.graphics.drawable.PictureDrawable
 import android.net.Uri
 import android.net.VpnService
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.view.Gravity
-import android.view.GestureDetector
-import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.view.Window
 import android.view.animation.AccelerateDecelerateInterpolator
 import android.view.animation.DecelerateInterpolator
 import android.widget.FrameLayout
-import android.widget.EditText
 import android.widget.ImageView
 import android.widget.LinearLayout
+import android.widget.PopupWindow
 import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
-import android.text.InputType
+import com.caverock.androidsvg.SVG
 import com.github.tfox.flutter_vless.xray.service.XrayVPNService
 import com.github.tfox.flutter_vless.xray.utils.AppConfigs
 import java.net.InetSocketAddress
@@ -49,10 +48,8 @@ class MainActivity : Activity() {
     private lateinit var root: FrameLayout
     private var pulse: AnimatorSet? = null
     private var playFirstConnectAnimation = false
-    private var carouselView: LinearLayout? = null
-    private var leftFlagView: FrameLayout? = null
-    private var mainFlagView: FrameLayout? = null
-    private var rightFlagView: FrameLayout? = null
+    private var serverSelectorView: LinearLayout? = null
+    private var serverSelectorFlagView: ImageView? = null
     private var serverNameView: TextView? = null
     private var serverDetailView: TextView? = null
     private var connectionTitleView: TextView? = null
@@ -60,7 +57,6 @@ class MainActivity : Activity() {
     private var powerHaloView: View? = null
     private var primaryActionView: TextView? = null
     private var accountLoading = false
-    private var profileDialog: Dialog? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -75,7 +71,7 @@ class MainActivity : Activity() {
         super.onResume()
         connected = AppConfigs.V2RAY_STATE == AppConfigs.V2RAY_STATES.V2RAY_CONNECTED
         if (api.token.isNotBlank() && routes.isEmpty()) resumeAccount()
-        else render()
+        updateConnectionPresentation()
     }
 
     private fun render() {
@@ -173,39 +169,33 @@ class MainActivity : Activity() {
         connectionTitleView = connectionTitle
         page.addView(connectionTitle)
 
-        val carousel = LinearLayout(this).apply {
+        val selector = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(dp(12), 0, dp(14), 0)
+            background = rounded(Color.WHITE, 7, 0x24000000)
+            elevation = dp(2).toFloat()
+            setOnClickListener { showServerDropdown(this) }
         }
-        carouselView = carousel
-        carousel.addView(label("‹", 43, INK, false).apply {
-            gravity = Gravity.CENTER
-            setOnClickListener { changeServer(-1) }
-        }, LinearLayout.LayoutParams(dp(46), dp(92)))
-        val leftFlag = flagBubble(routeAt(selected - 1)?.flag ?: "🌐", false)
-        val mainFlag = flagBubble(route?.flag ?: "🌐", true)
-        val rightFlag = flagBubble(routeAt(selected + 1)?.flag ?: "🌐", false)
-        leftFlagView = leftFlag
-        mainFlagView = mainFlag
-        rightFlagView = rightFlag
-        carousel.addView(leftFlag, LinearLayout.LayoutParams(dp(58), dp(58)).apply { marginEnd = dp(17) })
-        carousel.addView(mainFlag, LinearLayout.LayoutParams(dp(92), dp(92)))
-        carousel.addView(rightFlag, LinearLayout.LayoutParams(dp(58), dp(58)).apply { marginStart = dp(17) })
-        carousel.addView(label("›", 43, INK, false).apply {
-            gravity = Gravity.CENTER
-            setOnClickListener { changeServer(1) }
-        }, LinearLayout.LayoutParams(dp(46), dp(92)))
-        installCarouselSwipe(carousel, leftFlag, mainFlag, rightFlag)
-        page.addView(carousel, lp(top = 16, height = 92))
+        serverSelectorView = selector
+        val selectorFlag = flagImage(route?.countryCode ?: "xx", dp(42))
+        serverSelectorFlagView = selectorFlag
+        selector.addView(selectorFlag, LinearLayout.LayoutParams(dp(42), dp(42)).apply { marginEnd = dp(13) })
+        val selectorName = label(route?.name ?: "Серверы загружаются", 16, INK, true).apply {
+            maxLines = 1
+            ellipsize = android.text.TextUtils.TruncateAt.END
+        }
+        serverNameView = selectorName
+        selector.addView(selectorName, LinearLayout.LayoutParams(0, -2, 1f))
+        selector.addView(label("⌄", 23, INK, false).apply { gravity = Gravity.CENTER }, LinearLayout.LayoutParams(dp(30), -1))
+        page.addView(selector, lp(top = 18, height = 66))
 
-        serverNameView = label(route?.name ?: "Серверы загружаются", 22, INK, true).apply { gravity = Gravity.CENTER }
-        page.addView(serverNameView, lp(top = 12))
         serverDetailView = label(when {
             connecting -> "Устанавливаем защищённый маршрут"
             connected -> "Подключено · ${route?.detail ?: "VLESS Reality"}"
             else -> route?.detail ?: "Ожидание подписки"
         }, 13, MUTED, false).apply { gravity = Gravity.CENTER }
-        page.addView(serverDetailView, lp(top = 7))
+        page.addView(serverDetailView, lp(top = 11))
 
         val primaryAction = primaryButton(if (connected) "ОТКЛЮЧИТЬ" else "НАЙТИ ЛУЧШИЙ СЕРВЕР") {
             if (connected) stopVpn() else connectAutomatic()
@@ -237,116 +227,89 @@ class MainActivity : Activity() {
         return routes[(index % routes.size + routes.size) % routes.size]
     }
 
-    private fun changeServer(delta: Int) {
+    private fun selectServer(index: Int) {
         if (routes.isEmpty() || connecting || connected) return
-        val carousel = carouselView ?: return
-        carousel.animate()
-            .alpha(.15f)
-            .translationX(dp(-delta * 22).toFloat())
-            .scaleX(.97f)
-            .scaleY(.97f)
-            .setDuration(105)
-            .withEndAction {
-                selected = (selected + delta + routes.size) % routes.size
-                prefs.edit().putInt("selected", selected).apply()
-                bindFlag(leftFlagView, routeAt(selected - 1)?.flag ?: "🌐", false)
-                bindFlag(mainFlagView, routeAt(selected)?.flag ?: "🌐", true)
-                bindFlag(rightFlagView, routeAt(selected + 1)?.flag ?: "🌐", false)
-                serverNameView?.text = routeAt(selected)?.name ?: "VPNBOSS"
-                serverDetailView?.text = routeAt(selected)?.detail ?: "VLESS Reality"
-                carousel.translationX = dp(delta * 22).toFloat()
-                carousel.animate()
-                    .alpha(1f)
-                    .translationX(0f)
-                    .scaleX(1f)
-                    .scaleY(1f)
-                    .setDuration(210)
-                    .setInterpolator(DecelerateInterpolator())
-                    .start()
-                serverNameView?.apply {
-                    alpha = 0f
-                    translationY = dp(5).toFloat()
-                    animate().alpha(1f).translationY(0f).setDuration(190).start()
-                }
-                serverDetailView?.apply {
-                    alpha = 0f
-                    animate().alpha(1f).setDuration(220).start()
-                }
-            }.start()
+        selected = index.coerceIn(0, routes.lastIndex)
+        prefs.edit().putInt("selected", selected).apply()
+        bindSelectedRoute(animate = true)
     }
 
-    private fun installCarouselSwipe(carousel: LinearLayout, vararg targets: View) {
-        var startX = 0f
-        var switched = false
-        val detector = GestureDetector(this, object : GestureDetector.SimpleOnGestureListener() {
-            override fun onDown(event: MotionEvent): Boolean = true
+    private fun bindSelectedRoute(animate: Boolean = false) {
+        val route = routeAt(selected)
+        serverNameView?.text = route?.name ?: "Серверы загружаются"
+        serverDetailView?.text = route?.detail ?: "Ожидание подписки"
+        serverSelectorFlagView?.let { bindFlagImage(it, route?.countryCode ?: "xx") }
+        if (animate) {
+            serverSelectorView?.apply {
+                animate().cancel()
+                alpha = .35f
+                scaleX = .98f
+                scaleY = .98f
+                animate().alpha(1f).scaleX(1f).scaleY(1f).setDuration(190).start()
+            }
+        }
+    }
 
-            override fun onScroll(first: MotionEvent?, current: MotionEvent, distanceX: Float, distanceY: Float): Boolean {
-                if (connecting || connected || kotlin.math.abs(distanceX) < kotlin.math.abs(distanceY)) return false
-                carousel.translationX = (carousel.translationX - distanceX * .45f).coerceIn(-dp(42).toFloat(), dp(42).toFloat())
-                carousel.alpha = .82f
-                return true
-            }
-
-            override fun onFling(first: MotionEvent?, last: MotionEvent, velocityX: Float, velocityY: Float): Boolean {
-                if (kotlin.math.abs(velocityX) < 280 || kotlin.math.abs(velocityX) < kotlin.math.abs(velocityY)) return false
-                switched = true
-                changeServer(if (velocityX < 0) 1 else -1)
-                return true
-            }
-
-            override fun onSingleTapUp(event: MotionEvent): Boolean {
-                showServers()
-                return true
-            }
-        })
-        val listener = View.OnTouchListener { _, event ->
-            if (event.actionMasked == MotionEvent.ACTION_DOWN) {
-                startX = event.x
-                switched = false
-            }
-            val handled = detector.onTouchEvent(event)
-            if (event.actionMasked == MotionEvent.ACTION_UP || event.actionMasked == MotionEvent.ACTION_CANCEL) {
-                val distance = event.x - startX
-                if (!switched && event.actionMasked == MotionEvent.ACTION_UP && kotlin.math.abs(distance) > dp(42)) {
-                    changeServer(if (distance < 0) 1 else -1)
+    private fun showServerDropdown(anchor: View) {
+        if (routes.isEmpty()) return showError("В подписке пока нет доступных серверов")
+        val list = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(8), dp(8), dp(8), dp(8))
+            background = rounded(Color.WHITE, 7, 0x22000000)
+        }
+        val popup = PopupWindow(
+            ScrollView(this).apply { addView(list) },
+            anchor.width.coerceAtLeast(dp(280)),
+            minOf(dp(360), routes.size * dp(58) + dp(16)),
+            true,
+        ).apply {
+            elevation = dp(12).toFloat()
+            isOutsideTouchable = true
+            setBackgroundDrawable(rounded(Color.WHITE, 7))
+        }
+        routes.forEachIndexed { index, route ->
+            list.addView(LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                setPadding(dp(10), 0, dp(10), 0)
+                background = rounded(if (index == selected) 0xFFF0F0EE.toInt() else Color.WHITE, 6)
+                addView(flagImage(route.countryCode, dp(36)), LinearLayout.LayoutParams(dp(36), dp(36)).apply { marginEnd = dp(12) })
+                addView(label(route.name, 15, INK, true).apply {
+                    maxLines = 1
+                    ellipsize = android.text.TextUtils.TruncateAt.END
+                }, LinearLayout.LayoutParams(0, -2, 1f))
+                if (index == selected) addView(label("●", 12, INK, false))
+                setOnClickListener {
+                    popup.dismiss()
+                    selectServer(index)
                 }
-                carousel.animate().translationX(0f).alpha(1f).setDuration(180).start()
+            }, LinearLayout.LayoutParams(-1, dp(58)))
+        }
+        popup.showAsDropDown(anchor, 0, dp(6))
+    }
+
+    private fun flagImage(countryCode: String, size: Int) = ImageView(this).apply {
+        layoutParams = ViewGroup.LayoutParams(size, size)
+        scaleType = ImageView.ScaleType.CENTER_CROP
+        setLayerType(View.LAYER_TYPE_SOFTWARE, null)
+        background = circle(Color.WHITE, 0x16000000)
+        clipToOutline = true
+        outlineProvider = android.view.ViewOutlineProvider.BACKGROUND
+        bindFlagImage(this, countryCode)
+    }
+
+    private fun bindFlagImage(view: ImageView, countryCode: String) {
+        val code = countryCode.lowercase().takeIf { it.matches(Regex("[a-z]{2}")) } ?: "xx"
+        if (code == "xx") {
+            view.setImageResource(android.R.drawable.ic_menu_compass)
+            return
+        }
+        runCatching {
+            assets.open("flags/$code.svg").use { stream ->
+                view.setImageDrawable(PictureDrawable(SVG.getFromInputStream(stream).renderToPicture()))
             }
-            handled
-        }
-        targets.forEach { it.setOnTouchListener(listener) }
-    }
-
-    private fun flagBubble(flag: String, main: Boolean) = FrameLayout(this).apply {
-        bindFlag(this, flag, main)
-    }
-
-    private fun bindFlag(target: FrameLayout?, flag: String, main: Boolean) {
-        target ?: return
-        target.removeAllViews()
-        target.apply {
-        background = circle(Color.WHITE, 0x14000000)
-        elevation = dp(if (main) 8 else 3).toFloat()
-        alpha = if (main) 1f else .56f
-        val drawable = when (flag) {
-            "🇩🇰" -> R.drawable.flag_dk
-            "🇩🇪" -> R.drawable.flag_de
-            "🇷🇺" -> R.drawable.flag_ru
-            "🇪🇸" -> R.drawable.flag_es
-            else -> 0
-        }
-        if (drawable != 0) {
-            addView(ImageView(this@MainActivity).apply {
-                setImageResource(drawable)
-                scaleType = ImageView.ScaleType.CENTER_CROP
-                clipToOutline = true
-                outlineProvider = android.view.ViewOutlineProvider.BACKGROUND
-                background = circle(Color.WHITE)
-            }, FrameLayout.LayoutParams(-1, -1))
-        } else {
-            addView(label("◎", if (main) 32 else 21, INK, true).apply { gravity = Gravity.CENTER }, FrameLayout.LayoutParams(-1, -1))
-        }
+        }.onFailure {
+            view.setImageResource(android.R.drawable.ic_menu_compass)
         }
     }
 
@@ -363,10 +326,12 @@ class MainActivity : Activity() {
     private fun pollAuth(code: String) = thread {
         repeat(150) {
             Thread.sleep(2_000)
-            when (runCatching { api.appAuthCheck(code) }.getOrDefault("pending")) {
+            val check = runCatching { api.appAuthCheck(code) }.getOrElse { AuthCheck("pending", null) }
+            when (check.status) {
                 "confirmed" -> {
                     prefs.edit().putString("token", api.token).apply()
-                    resumeAccount()
+                    handler.post { render() }
+                    if (check.subscriptionUrl != null) refreshRoutes(check.subscriptionUrl) else resumeAccount()
                     return@thread
                 }
                 "expired" -> {
@@ -383,15 +348,24 @@ class MainActivity : Activity() {
         thread {
             runCatching { api.profile() }
                 .onSuccess { profile ->
-                    when {
-                        profile.needsCompletion -> handler.post {
-                            accountLoading = false
-                            showProfileCompletion(profile.email)
-                        }
-                        !profile.hasSubscription && !profile.trialUsed -> runCatching { api.activateTrial() }
-                            .onSuccess { accountLoading = false; refreshRoutes() }
-                            .onFailure { accountLoading = false; showError(it.message) }
-                        else -> { accountLoading = false; refreshRoutes() }
+                    if (profile.needsCompletion) {
+                        accountLoading = false
+                        showError("Завершите вход и укажите email на сайте VPNBOSS")
+                        handler.post { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://vpnboss.space/cabinet"))) }
+                    } else {
+                        runCatching { api.connectionUrl() }
+                            .onSuccess { subscriptionUrl ->
+                                accountLoading = false
+                                refreshRoutes(subscriptionUrl)
+                            }
+                            .onFailure {
+                                accountLoading = false
+                                handler.post {
+                                    routes = emptyList()
+                                    bindSelectedRoute()
+                                    showError("Активной подписки пока нет")
+                                }
+                            }
                     }
                 }
                 .onFailure { error ->
@@ -405,78 +379,13 @@ class MainActivity : Activity() {
         }
     }
 
-    private fun showProfileCompletion(savedEmail: String) {
-        if (profileDialog?.isShowing == true || isFinishing) return
-        val email = profileField("Email", savedEmail, InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS)
-        val password = profileField("Пароль", "", InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD)
-        val confirmation = profileField("Повторите пароль", "", InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD)
-        val dialog = Dialog(this).apply {
-            requestWindowFeature(Window.FEATURE_NO_TITLE)
-            setCancelable(false)
-        }
-        val content = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(dp(24), dp(25), dp(24), dp(20))
-            background = rounded(PAPER, 8)
-            addView(label("Завершите регистрацию", 24, INK, true))
-            addView(label("Укажите email и придумайте пароль. После этого мы сразу подарим вам 5 дней VPNBOSS.", 14, SECONDARY, false).apply {
-                setLineSpacing(dp(3).toFloat(), 1f)
-            }, lp(top = 10))
-            addView(email, lp(top = 20, height = 52))
-            addView(password, lp(top = 9, height = 52))
-            addView(confirmation, lp(top = 9, height = 52))
-            addView(primaryButton("ПОЛУЧИТЬ 5 ДНЕЙ БЕСПЛАТНО") {
-                val cleanEmail = email.text.toString().trim()
-                val pass = password.text.toString()
-                when {
-                    !android.util.Patterns.EMAIL_ADDRESS.matcher(cleanEmail).matches() -> showError("Введите корректный email")
-                    pass.length < 6 -> showError("Пароль должен содержать минимум 6 символов")
-                    pass != confirmation.text.toString() -> showError("Пароли не совпадают")
-                    else -> {
-                        email.isEnabled = false; password.isEnabled = false; confirmation.isEnabled = false
-                        thread {
-                            runCatching {
-                                api.completeProfile(cleanEmail, pass)
-                                api.activateTrial()
-                            }.onSuccess {
-                                handler.post { dialog.dismiss(); profileDialog = null }
-                                refreshRoutes()
-                            }.onFailure { error -> handler.post {
-                                email.isEnabled = true; password.isEnabled = true; confirmation.isEnabled = true
-                                showError(error.message)
-                            } }
-                        }
-                    }
-                }
-            }, lp(top = 18, height = 56))
-            addView(label("75 ГБ · 3 устройства · без оплаты", 12, MUTED, false).apply { gravity = Gravity.CENTER }, lp(top = 11))
-        }
-        dialog.setContentView(content)
-        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
-        dialog.show()
-        dialog.window?.setLayout((resources.displayMetrics.widthPixels * .9f).toInt(), ViewGroup.LayoutParams.WRAP_CONTENT)
-        profileDialog = dialog
-    }
-
-    private fun profileField(hint: String, value: String, type: Int) = EditText(this).apply {
-        this.hint = hint
-        setText(value)
-        inputType = type
-        textSize = 16f
-        setTextColor(INK)
-        setHintTextColor(MUTED)
-        setPadding(dp(15), 0, dp(15), 0)
-        background = rounded(Color.WHITE, 7, 0x24000000)
-        setSelectAllOnFocus(false)
-    }
-
-    private fun refreshRoutes() = thread {
-        runCatching { api.loadRoutes() }
+    private fun refreshRoutes(subscriptionUrl: String) = thread {
+        runCatching { api.loadRoutes(subscriptionUrl) }
             .onSuccess { loaded -> handler.post {
                 routes = loaded
                 saveCachedRoutes(loaded)
                 selected = selected.coerceIn(0, (routes.size - 1).coerceAtLeast(0))
-                render()
+                bindSelectedRoute(animate = true)
             } }
             .onFailure { error -> handler.post {
                 if (error.message?.contains("401") == true || error.message?.contains("Unauthorized", true) == true) {
@@ -485,49 +394,6 @@ class MainActivity : Activity() {
                     render()
                 } else showError(error.message)
             } }
-    }
-
-    private fun showServers() {
-        if (routes.isEmpty()) return showError("В подписке пока нет доступных серверов")
-        val dialog = Dialog(this)
-        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
-        val content = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(dp(22), dp(24), dp(22), dp(20))
-            background = rounded(PAPER, 8)
-            addView(label("Выберите сервер", 23, INK, true))
-            addView(label("Подключение пойдёт именно через выбранную локацию", 13, SECONDARY, false), lp(top = 8))
-        }
-        val list = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-        routes.forEachIndexed { index, route ->
-            list.addView(LinearLayout(this).apply {
-                orientation = LinearLayout.HORIZONTAL
-                gravity = Gravity.CENTER_VERTICAL
-                setPadding(dp(14), 0, dp(14), 0)
-                background = rounded(if (index == selected) 0xFFEAEAEA.toInt() else Color.WHITE, 7)
-                addView(flagBubble(route.flag, false), LinearLayout.LayoutParams(dp(42), dp(42)).apply { marginEnd = dp(12) })
-                addView(label(route.name, 15, INK, true), LinearLayout.LayoutParams(0, -2, 1f))
-                addView(label(if (index == selected) "●" else "○", 15, INK, false))
-                setOnClickListener {
-                    selected = index
-                    prefs.edit().putInt("selected", index).apply()
-                    dialog.dismiss()
-                    bindFlag(leftFlagView, routeAt(selected - 1)?.flag ?: "🌐", false)
-                    bindFlag(mainFlagView, routeAt(selected)?.flag ?: "🌐", true)
-                    bindFlag(rightFlagView, routeAt(selected + 1)?.flag ?: "🌐", false)
-                    serverNameView?.text = routeAt(selected)?.name ?: "VPNBOSS"
-                    serverDetailView?.text = routeAt(selected)?.detail ?: "VLESS Reality"
-                }
-            }, lp(top = 8, height = 62))
-        }
-        content.addView(ScrollView(this).apply { addView(list) }, lp(top = 18, height = 330))
-        dialog.setContentView(content)
-        dialog.window?.apply {
-            setBackgroundDrawableResource(android.R.color.transparent)
-            setLayout((resources.displayMetrics.widthPixels * .92f).toInt(), ViewGroup.LayoutParams.WRAP_CONTENT)
-        }
-        dialog.show()
-        dialog.window?.setLayout((resources.displayMetrics.widthPixels * .92f).toInt(), ViewGroup.LayoutParams.WRAP_CONTENT)
     }
 
     private fun connectSelected() {
@@ -728,6 +594,7 @@ class MainActivity : Activity() {
             payload.put(JSONObject()
                 .put("id", route.id)
                 .put("flag", route.flag)
+                .put("countryCode", route.countryCode)
                 .put("name", route.name)
                 .put("location", route.location)
                 .put("detail", route.detail)
@@ -743,11 +610,16 @@ class MainActivity : Activity() {
             RouteItem(
                 route.optLong("id", index.toLong()),
                 route.optString("flag", "🌐"),
+                route.optString("countryCode", "xx"),
                 route.optString("name", "VPNBOSS"),
                 route.optString("location", ""),
                 route.optString("detail", "VLESS Reality"),
                 route.getString("config"),
             )
+        }.filterNot { route ->
+            val text = route.name.lowercase()
+            text.contains("лимит устройств") || text.contains("удалите одно устройство") ||
+                text.contains("device limit") || text.contains("remove one device")
         }
     }.getOrDefault(emptyList())
     private fun showError(message: String?) {
