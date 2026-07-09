@@ -122,7 +122,7 @@ class MainActivity : Activity() {
 
     private fun renderHome(page: LinearLayout) {
         val route = routeAt(selected)
-        page.addView(space(0, 0), LinearLayout.LayoutParams(1, dp(34)))
+        page.addView(space(0, 0), LinearLayout.LayoutParams(1, dp(18)))
 
         val powerWrap = FrameLayout(this)
         val halo = View(this).apply { background = circle(if (connected) 0x16000000 else 0x0A000000) }
@@ -144,9 +144,9 @@ class MainActivity : Activity() {
             }
         }
         powerButtonView = power
-        powerWrap.addView(halo, FrameLayout.LayoutParams(dp(234), dp(234), Gravity.CENTER))
-        powerWrap.addView(power, FrameLayout.LayoutParams(dp(210), dp(210), Gravity.CENTER))
-        page.addView(powerWrap, lp(height = 246))
+        powerWrap.addView(halo, FrameLayout.LayoutParams(dp(214), dp(214), Gravity.CENTER))
+        powerWrap.addView(power, FrameLayout.LayoutParams(dp(190), dp(190), Gravity.CENTER))
+        page.addView(powerWrap, lp(height = 222))
 
         if (connecting) {
             pulse = AnimatorSet().apply {
@@ -165,43 +165,56 @@ class MainActivity : Activity() {
             connecting -> "Устанавливаем соединение"
             connected -> "VPNBOSS включён"
             else -> "Выберите локацию сервера"
-        }, 15, INK, true).apply { gravity = Gravity.CENTER }
+        }, 14, if (connected) INK else SECONDARY, true).apply { gravity = Gravity.CENTER }
         connectionTitleView = connectionTitle
         page.addView(connectionTitle)
+        page.addView(label("ЛОКАЦИЯ", 11, MUTED, true), lp(top = 22))
 
         val selector = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            setPadding(dp(12), 0, dp(14), 0)
+            setPadding(dp(12), 0, dp(12), 0)
             background = rounded(Color.WHITE, 7, 0x24000000)
-            elevation = dp(2).toFloat()
-            setOnClickListener { showServerDropdown(this) }
+            elevation = dp(1).toFloat()
+            setOnClickListener {
+                animate().scaleX(.985f).scaleY(.985f).setDuration(75).withEndAction {
+                    animate().scaleX(1f).scaleY(1f).setDuration(140).start()
+                    showServerDropdown(this)
+                }.start()
+            }
         }
         serverSelectorView = selector
-        val selectorFlag = flagImage(route?.countryCode ?: "xx", dp(42))
+        val selectorFlag = flagImage(route?.countryCode ?: "xx", dp(40))
         serverSelectorFlagView = selectorFlag
-        selector.addView(selectorFlag, LinearLayout.LayoutParams(dp(42), dp(42)).apply { marginEnd = dp(13) })
+        selector.addView(selectorFlag, LinearLayout.LayoutParams(dp(40), dp(40)).apply { marginEnd = dp(13) })
         val selectorName = label(route?.name ?: "Серверы загружаются", 16, INK, true).apply {
             maxLines = 1
             ellipsize = android.text.TextUtils.TruncateAt.END
         }
         serverNameView = selectorName
-        selector.addView(selectorName, LinearLayout.LayoutParams(0, -2, 1f))
-        selector.addView(label("⌄", 23, INK, false).apply { gravity = Gravity.CENTER }, LinearLayout.LayoutParams(dp(30), -1))
-        page.addView(selector, lp(top = 18, height = 66))
-
-        serverDetailView = label(when {
+        val selectorDetail = label(when {
             connecting -> "Устанавливаем защищённый маршрут"
             connected -> "Подключено · ${route?.detail ?: "VLESS Reality"}"
             else -> route?.detail ?: "Ожидание подписки"
-        }, 13, MUTED, false).apply { gravity = Gravity.CENTER }
-        page.addView(serverDetailView, lp(top = 11))
+        }, 12, MUTED, false).apply {
+            maxLines = 1
+            ellipsize = android.text.TextUtils.TruncateAt.END
+        }
+        serverDetailView = selectorDetail
+        selector.addView(LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER_VERTICAL
+            addView(selectorName)
+            addView(selectorDetail, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(3) })
+        }, LinearLayout.LayoutParams(0, -1, 1f))
+        selector.addView(label("⌄", 22, INK, false).apply { gravity = Gravity.CENTER }, LinearLayout.LayoutParams(dp(30), -1))
+        page.addView(selector, lp(top = 8, height = 68))
 
         val primaryAction = primaryButton(if (connected) "ОТКЛЮЧИТЬ" else "НАЙТИ ЛУЧШИЙ СЕРВЕР") {
             if (connected) stopVpn() else connectAutomatic()
         }
         primaryActionView = primaryAction
-        page.addView(primaryAction, lp(top = 26, height = 56))
+        page.addView(primaryAction, lp(top = 22, height = 56))
         page.addView(secondaryButton("ЛИЧНЫЙ КАБИНЕТ") { showCabinetDialog() }, lp(top = 9, height = 48))
         page.addView(space(0, 0), LinearLayout.LayoutParams(1, 0, .15f))
     }
@@ -257,8 +270,9 @@ class MainActivity : Activity() {
             setPadding(dp(8), dp(8), dp(8), dp(8))
             background = rounded(Color.WHITE, 7, 0x22000000)
         }
+        val scroll = ScrollView(this).apply { addView(list) }
         val popup = PopupWindow(
-            ScrollView(this).apply { addView(list) },
+            scroll,
             anchor.width.coerceAtLeast(dp(280)),
             minOf(dp(360), routes.size * dp(58) + dp(16)),
             true,
@@ -286,6 +300,12 @@ class MainActivity : Activity() {
             }, LinearLayout.LayoutParams(-1, dp(58)))
         }
         popup.showAsDropDown(anchor, 0, dp(6))
+        scroll.apply {
+            pivotY = 0f
+            alpha = 0f
+            scaleY = .97f
+            animate().alpha(1f).scaleY(1f).setDuration(170).setInterpolator(DecelerateInterpolator()).start()
+        }
     }
 
     private fun flagImage(countryCode: String, size: Int) = ImageView(this).apply {
