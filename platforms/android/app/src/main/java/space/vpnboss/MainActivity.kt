@@ -104,6 +104,22 @@ class MainActivity : Activity() {
             }, LinearLayout.LayoutParams(dp(7), dp(7)).apply { marginEnd = dp(7) })
             addView(label(if (connected) "Подключено" else "VPNBOSS", 11, MUTED, true))
         }, LinearLayout.LayoutParams(0, dp(44), 1f))
+        if (api.token.isNotBlank()) {
+            addView(ImageView(this@MainActivity).apply {
+                setImageResource(R.drawable.ic_settings)
+                scaleType = ImageView.ScaleType.CENTER
+                background = circle(Color.WHITE, 0x22000000)
+                elevation = dp(1).toFloat()
+                contentDescription = "Настройки аккаунта"
+                setPadding(dp(10), dp(10), dp(10), dp(10))
+                setOnClickListener {
+                    animate().scaleX(.92f).scaleY(.92f).setDuration(75).withEndAction {
+                        animate().scaleX(1f).scaleY(1f).setDuration(130).start()
+                        showAccountMenu(this)
+                    }.start()
+                }
+            }, LinearLayout.LayoutParams(dp(40), dp(40)).apply { marginStart = dp(12) })
+        }
     }
 
     private fun renderAuth(page: LinearLayout) {
@@ -561,6 +577,72 @@ class MainActivity : Activity() {
         }
         dialog.show()
         dialog.window?.setLayout((resources.displayMetrics.widthPixels * .9f).toInt(), ViewGroup.LayoutParams.WRAP_CONTENT)
+    }
+
+    private fun showAccountMenu(anchor: View) {
+        val content = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(8), dp(8), dp(8), dp(8))
+            background = rounded(Color.WHITE, 8, 0x22000000)
+            addView(label("АККАУНТ", 11, MUTED, true).apply {
+                gravity = Gravity.CENTER_VERTICAL
+                setPadding(dp(12), 0, dp(12), 0)
+            }, LinearLayout.LayoutParams(-1, dp(38)))
+        }
+        val popup = PopupWindow(content, dp(210), ViewGroup.LayoutParams.WRAP_CONTENT, true).apply {
+            elevation = dp(14).toFloat()
+            isOutsideTouchable = true
+            setBackgroundDrawable(rounded(Color.WHITE, 8))
+        }
+        content.addView(LinearLayout(this).apply {
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(dp(12), 0, dp(12), 0)
+            background = rounded(0xFFFFF4F3.toInt(), 6)
+            addView(ImageView(this@MainActivity).apply {
+                setImageResource(android.R.drawable.ic_lock_power_off)
+                setColorFilter(0xFFB42318.toInt())
+                contentDescription = null
+                scaleType = ImageView.ScaleType.CENTER
+            }, LinearLayout.LayoutParams(dp(24), dp(24)).apply { marginEnd = dp(10) })
+            addView(label("Выйти", 15, 0xFFB42318.toInt(), true), LinearLayout.LayoutParams(0, -2, 1f))
+            setOnClickListener {
+                popup.dismiss()
+                logout()
+            }
+        }, LinearLayout.LayoutParams(-1, dp(52)))
+        popup.showAsDropDown(anchor, anchor.width - dp(210), dp(7))
+        content.apply {
+            pivotX = dp(210).toFloat()
+            pivotY = 0f
+            alpha = 0f
+            scaleX = .97f
+            scaleY = .97f
+            animate()
+                .alpha(1f)
+                .scaleX(1f)
+                .scaleY(1f)
+                .setDuration(170)
+                .setInterpolator(DecelerateInterpolator())
+                .start()
+        }
+    }
+
+    private fun logout() {
+        if (connected || connecting) stopVpn()
+        pulse?.cancel()
+        api.token = ""
+        routes = emptyList()
+        selected = 0
+        connecting = false
+        connected = false
+        accountLoading = false
+        prefs.edit()
+            .remove("token")
+            .remove("routes")
+            .remove("selected")
+            .apply()
+        render()
+        Toast.makeText(this, "Вы вышли из аккаунта", Toast.LENGTH_SHORT).show()
     }
 
     private fun primaryButton(text: String, action: () -> Unit) = label(text, 14, Color.WHITE, true).apply {
